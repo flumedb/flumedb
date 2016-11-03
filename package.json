@@ -1,11 +1,11 @@
 {
-  "name": "logdriver",
+  "name": "flumedb",
   "description": "",
   "version": "0.0.0",
-  "homepage": "https://github.com/dominictarr/logdriver",
+  "homepage": "https://github.com/dominictarr/flumedb",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dominictarr/logdriver.git"
+    "url": "git://github.com/dominictarr/flumedb.git"
   },
   "dependencies": {
     "cont": "^1.0.3",
