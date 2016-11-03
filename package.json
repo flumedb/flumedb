@@ -1,0 +1,24 @@
+{
+  "name": "logdriver",
+  "description": "",
+  "version": "0.0.0",
+  "homepage": "https://github.com/dominictarr/logdriver",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/logdriver.git"
+  },
+  "dependencies": {
+    "cont": "^1.0.3",
+    "pull-cont": "0.0.0",
+    "pull-stream": "^3.5.0"
+  },
+  "devDependencies": {
+    "statistics": "^3.3.0",
+    "tape": "^4.6.2"
+  },
+  "scripts": {
+    "test": "set -e; for t in test/*.js; do node $t; done"
+  },
+  "author": "'Dominic Tarr' <dominic.tarr@gmail.com> (dominictarr.com)",
+  "license": "MIT"
+}
