@@ -57,6 +57,20 @@ db.append({foo: 1}, function (err, seq) {
 
 ```
 
+## modules
+
+there are two types of components, logs, which you need just one of,
+and views, which want many of. I expect that the list of view modules
+will grow much longer than the list of view modules.
+
+### logs
+
+* [flumedb/flumelog-memory](https://github.com/flumedb/flumelog-memory) a log that is just an in memory array.
+
+### views
+
+* [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
+
 ## api
 
 ## flumedb
@@ -129,6 +143,11 @@ it should be a number larger or equal to zero.
 append a value (or array of values) to the log, and return the new latest sequence.
 `flumelog.since` is updated before calling `cb`.
 
+### flumelog.dir => directory name
+
+filename of the directory this flumelog is persisted in
+(this is used by the views, if they are also persistent)
+
 ## flumeview
 
 A `flumeview` provides a read api, and a streaming sink that accepts data from the log
@@ -148,7 +167,7 @@ return a pull-stream sink that accepts data from the log. The input will be `{se
 
 Wipe out the flumeview's internal (and persisted) state, and reset `flumeview.since` to `-1`
 
-### flumeview.methods = {<key>:'sync'|'async'|'source'}
+### flumeview.methods = {\<key\>:'sync'|'async'|'source'}
 
 An object describing the methods exposed by this view.
 A view needs to expose at least one method
@@ -168,6 +187,8 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
+
 
 
 
