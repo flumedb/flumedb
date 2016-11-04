@@ -13,6 +13,7 @@
     "pull-stream": "^3.5.0"
   },
   "devDependencies": {
+    "flumelog-level": "^0.0.3",
     "statistics": "^3.3.0",
     "tape": "^4.6.2"
   },
