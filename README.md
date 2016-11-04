@@ -1,6 +1,6 @@
 # flumedb
 
-a modular database made for moving logs with streams.
+A modular database made for moving logs with streams.
 
 ## architecture
 
