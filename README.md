@@ -6,15 +6,18 @@ a modular database made from moving logs with streams.
 
 Flume is a modular database compromised of an Append Only Log,
 and then Streaming Views on that log.
+This makes a star shaped pipeline - or rather, there is a pipeline
+from the log to each view, but the log is part of every pipeline.
 
 The Log compromises the main storage, messages can be appended,
-then that data is streamed through _views_. Views are deterministic,
-the same data in the same order must give the same query results.
+a view can materialize data from the view (denormalized), or they
+can point back to that data (normalized), as long as the views are
+generated purely from the data, so that they can be rebuilt exactly the same.
 
-Unlike my previous work, [level-sublevel](https://github.com/dominictarr/level-sublevel)
-views can be async.
-This means things that where difficult to do with _sublevel_,
-such as maintaining a count or sum of all the records, are now easy.
+Because we are using streams, views can be async. In my previous work,
+[level-sublevel](https://github.com/dominictarr/level-sublevel), this was not the case.
+There where some simple things, such as maintaining a count or sum of all records,
+that where basically impossible with sublevel, but are easy with _flume_.
 
 The trick is that each view exposes an [observable](https://github.com/dominictarr/obv)
 that represents it's current state. An observable is like an event meets a value.
@@ -188,6 +191,11 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
+
+
+
+
 
 
 
