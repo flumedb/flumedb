@@ -10,6 +10,7 @@ function wrap(sv, since) {
   var waiting = []
 
   sv.since(function (upto) {
+    console.log('upto', sv, upto)
     while(waiting.length && waiting[0].seq <= upto)
       waiting.shift().cb()
   })
@@ -42,7 +43,7 @@ function wrap(sv, since) {
     sync: function (fn) { return fn }
   }
 
-  var o = {ready: ready}
+  var o = {ready: ready, since: sv.since}
   if(!sv.methods) throw new Error('a stream view must have methods property')
 
   for(var key in sv.methods) {
@@ -71,6 +72,7 @@ module.exports = function (log) {
 
   var flume = {
     //stream from the log
+    since: log.since,
     stream: log.stream,
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
@@ -84,7 +86,6 @@ module.exports = function (log) {
       sv.since.once(function (upto) {
         pull(
           log.stream({gt: upto, live: true, seqs: true, values: true}),
-          pull.through(console.log),
           sv.createSink(function (err) {
             if(err) console.error(err)
           })
