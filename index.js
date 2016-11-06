@@ -10,7 +10,6 @@ function wrap(sv, since) {
   var waiting = []
 
   sv.since(function (upto) {
-    console.log('upto', sv, upto)
     while(waiting.length && waiting[0].seq <= upto)
       waiting.shift().cb()
   })
@@ -73,12 +72,23 @@ module.exports = function (log) {
   var flume = {
     //stream from the log
     since: log.since,
-    stream: log.stream,
+    stream: function (opts) {
+      return PullCont(function (cb) {
+        log.since.once(function () {
+          cb(null, log.stream(opts))
+        })
+      })
+    },
+    get: function (seq, cb) {
+      log.since.once(function () {
+        log.get(seq, cb)
+      })
+    },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
 
-      var sv = createView(log)
+      var sv = createView(log, name)
 
       views[name] = sv
       flume[name] = wrap(sv, log.since)
@@ -111,4 +121,6 @@ module.exports = function (log) {
   }
   return flume
 }
+
+
 
