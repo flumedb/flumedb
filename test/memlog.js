@@ -1,4 +1,5 @@
 var statistics = require('statistics')
+var pull = require('pull-stream')
 
 var tape = require('tape')
 
@@ -11,6 +12,14 @@ module.exports = function (db) {
   db.use('stats', Reduce(function (acc, data) {
     return statistics(acc, data.foo)
   }))
+
+  tape('empty db', function (t) {
+    db.stats.get(function (err, value) {
+      if(err) throw err
+      t.equal(value, undefined)
+      t.end()
+    })
+  })
 
   tape('simple', function (t) {
 
@@ -45,10 +54,23 @@ module.exports = function (db) {
     })
   })
 
+  tape('get items in stream', function (t) {
+    pull(
+      db.stream({seqs: true, values: false}),
+      pull.asyncMap(function (seq, cb) {
+        db.get(seq, cb)
+      }),
+      pull.collect(function (err, ary) {
+        if(err) throw err
+        t.deepEqual(ary, [{foo: 1}, {foo: 3}])
+        t.end()
+      })
+    )
+
+  })
+
 }
 
 if(!module.parent)
   module.exports(Flume(MemLog()))
-
-
 
