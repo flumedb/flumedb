@@ -69,11 +69,21 @@ will grow much longer than the list of log modules.
 ### logs
 
 * [flumedb/flumelog-memory](https://github.com/flumedb/flumelog-memory) a log that is just an in memory array.
+* [flumedb/flumelog-level](https://github.com/flumedb/flumelog-level) a log on level.
+* [flumedb/flumelog-offset](https://github.com/flumedb/flumelog-offset) a log in a _file_ *recommended*.
 
 ### views
 
 * [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
 * [flumedb/flumeview-level](https://github.com/flumedb/flumeview-level) an implemented index on level.
+
+### other
+
+other modules that may come in useful
+
+* [flumedb/flumecli](https://github.com/flumedb/flumecli) instance command line interface
+* [flumedb/aligned-block-file](https://github.com/flumedb/aligned-block-file) read and write to a file with aligned blocks that are easy to cache.
+* [flumedb/test-flumelog](https://github.com/flumedb/test-flumedb) reusable tests for a flumelog.
 
 ## api
 
