@@ -132,6 +132,10 @@ this might take a while, because it must read completely through the whole datab
 the various read APIs and appending to the database while it is being rebuilt,
 but view reads will be delayed until those views are up to date.
 
+### flumedb.close(cb)
+
+closes all flumeviews.
+
 ### flumelog
 
 The log is the heart of `flumedb`, it's the cannonical store of data, and all state is stored there.
@@ -180,6 +184,10 @@ Returns a pull-stream sink that accepts data from the log. The input will be `{s
 #### flumeview.destroy (cb)
 
 Wipe out the flumeview's internal (and persisted) state, and reset `flumeview.since` to `-1`.
+
+#### flumeview.close (cb)
+
+flush any pending writes and release resources, etc.
 
 #### flumeview.methods = {\<key\>:'sync'|'async'|'source'}
 
