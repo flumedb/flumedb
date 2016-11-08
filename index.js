@@ -2,6 +2,7 @@
 var cont = require('cont')
 var PullCont = require('pull-cont')
 var pull = require('pull-stream')
+var path = require('path')
 
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
@@ -33,7 +34,6 @@ function wrap(sv, since) {
     },
     async: function (fn) {
       return function (opts, cb) {
-        if(!cb) cb = opts, opts = null
         ready(function () {
           fn(opts, cb)
         })
@@ -42,7 +42,7 @@ function wrap(sv, since) {
     sync: function (fn) { return fn }
   }
 
-  var o = {ready: ready, since: sv.since}
+  var o = {ready: ready, since: sv.since, close: wrapper.async(sv.close || function (cb) { return cb() }) }
   if(!sv.methods) throw new Error('a stream view must have methods property')
 
   for(var key in sv.methods) {
@@ -68,7 +68,6 @@ function map(obj, iter) {
 
 module.exports = function (log) {
   var views = []
-
   var flume = {
     dir: log.filename ? path.dirname(log.filename) : null,
     //stream from the log
@@ -94,8 +93,7 @@ module.exports = function (log) {
 
       var sv = createView(log, name)
 
-      views[name] = sv
-      flume[name] = wrap(sv, log.since)
+      views[name] = flume[name] = wrap(sv, log.since)
 
       sv.since.once(function (upto) {
         pull(
@@ -142,4 +140,5 @@ module.exports = function (log) {
   }
   return flume
 }
+
 
