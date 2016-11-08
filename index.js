@@ -70,8 +70,12 @@ module.exports = function (log) {
   var views = []
 
   var flume = {
+    dir: log.filename ? path.dirname(log.filename) : null,
     //stream from the log
     since: log.since,
+    append: function (value, cb) {
+      return log.append(value, cb)
+    },
     stream: function (opts) {
       return PullCont(function (cb) {
         log.since.once(function () {
@@ -106,21 +110,36 @@ module.exports = function (log) {
     },
     rebuild: function (cb) {
       return cont.para(map(views, function (sv) {
-        return function (cb) { sv.destroy(cb) }
+        return function (cb) {
+          sv.destroy(function (err) {
+            if(err) return cb(err)
+            sv.since.once(function (upto) {
+              pull(
+                log.stream({gt: upto, live: true, seqs: true, values: true}),
+                sv.createSink(function (err) {
+                  if(err) console.error(err)
+                })
+              )
+            })
+          })
+        }
       }))
       (function (err) {
         if(err) cb(err) //hopefully never happens
 
         //then restream each streamview, and callback when it's uptodate with the main log.
-        //
       })
     },
-    append: function (value, cb) {
-      return log.append(value, cb)
+    close: function (cb) {
+      cont.para(map(views, function (sv) {
+        return function (cb) {
+          if(sv.close) sv.close(cb)
+          else cb()
+        }
+      })) (cb)
+
     }
   }
   return flume
 }
-
-
 
