@@ -76,6 +76,7 @@ will grow much longer than the list of log modules.
 
 * [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
 * [flumedb/flumeview-level](https://github.com/flumedb/flumeview-level) an implemented index on level.
+* [flumedb/flumeview-query](https://github.com/flumedb/flumeview-query) functional query language.
 
 ### other
 
@@ -209,6 +210,7 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
 
 
 
