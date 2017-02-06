@@ -21,7 +21,7 @@ that where basically impossible with sublevel, but are easy with _flume_.
 
 The trick is that each view exposes an [observable](https://github.com/dominictarr/obv)
 that represents it's current state. An observable is like an event meets a value.
-it's an changing value that you can _observe_, events, promises, or streams are similar,
+it's an changing value that you can _observe_. Events, promises, or streams are similar,
 but not quite the right choice here.
 
 Data goes into the log, then is streamed to the view, view updates may be async,
