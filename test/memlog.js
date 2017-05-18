@@ -9,7 +9,7 @@ var MemLog = require('flumelog-memory')
 var Reduce = require('flumeview-reduce')
 
 module.exports = function (db) {
-  db.use('stats', Reduce(function (acc, data) {
+  db.use('stats', Reduce(1, function (acc, data) {
     return statistics(acc, data.foo)
   }))
 
