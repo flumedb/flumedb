@@ -9,11 +9,16 @@
   },
   "dependencies": {
     "cont": "^1.0.3",
+    "explain-error": "^1.0.3",
     "pull-cont": "0.0.0",
     "pull-stream": "^3.5.0"
   },
   "devDependencies": {
+    "flumecodec": "0.0.0",
     "flumelog-level": "^0.0.3",
+    "flumelog-memory": "^0.1.2",
+    "flumelog-offset": "^2.0.0",
+    "flumeview-reduce": "^1.0.2",
     "statistics": "^3.3.0",
     "tape": "^4.6.2"
   },
