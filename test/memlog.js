@@ -69,6 +69,22 @@ module.exports = function (db) {
 
   })
 
+  tape('disable ready to stall all reads', function (t) {
+    var called = false
+    db.ready.set(false)
+    db.stats.get([], function (err, value) {
+      called = true
+    })
+    setTimeout(function () {
+      t.equal(db.ready.value, false)
+      t.equal(called, false)
+      db.ready.set(true)
+      t.equal(called, true) //this should fire immediately
+      t.end()
+    }, 100)
+
+  })
+
 }
 
 if(!module.parent)
