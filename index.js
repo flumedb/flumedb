@@ -3,23 +3,32 @@ var cont = require('cont')
 var PullCont = require('pull-cont')
 var pull = require('pull-stream')
 var path = require('path')
-
+var Obv = require('obv')
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
 
-function wrap(sv, since) {
+function wrap(sv, since, isReady) {
   var waiting = []
 
   sv.since(function (upto) {
+    if(!isReady.value) return
+    while(waiting.length && waiting[0].seq <= upto)
+      waiting.shift().cb()
+  })
+
+  isReady(function (ready) {
+    if(!ready) return
+    var upto = sv.since.value
+    if(upto == undefined) return
     while(waiting.length && waiting[0].seq <= upto)
       waiting.shift().cb()
   })
 
   function ready (cb) {
-    if(since.value != null && since.value === sv.since.value) cb()
+    if(isReady.value && since.value != null && since.value === sv.since.value) cb()
     else
       since.once(function (upto) {
-        if(upto === sv.since.value) cb()
+        if(isReady.value && upto === sv.since.value) cb()
         else waiting.push({seq: upto, cb: cb})
       })
   }
@@ -66,12 +75,15 @@ function map(obj, iter) {
   return o
 }
 
-module.exports = function (log) {
+module.exports = function (log, isReady) {
   var views = []
+  var ready = Obv()
+  ready.set(isReady !== undefined ? isReady : true)
   var flume = {
     dir: log.filename ? path.dirname(log.filename) : null,
     //stream from the log
     since: log.since,
+    ready: ready,
     append: function (value, cb) {
       return log.append(value, cb)
     },
@@ -93,7 +105,7 @@ module.exports = function (log) {
 
       var sv = createView(log, name)
 
-      views[name] = flume[name] = wrap(sv, log.since)
+      views[name] = flume[name] = wrap(sv, log.since, ready)
 
       sv.since.once(function (upto) {
         pull(
@@ -140,5 +152,4 @@ module.exports = function (log) {
   }
   return flume
 }
-
 
