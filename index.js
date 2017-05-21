@@ -142,14 +142,9 @@ module.exports = function (log, isReady) {
     },
     close: function (cb) {
       cont.para(map(views, function (sv, k) {
-        console.log("CLOSE", k)
         return function (cb) {
-          if(sv.close) sv.close(_cb)
-          else _cb()
-          function _cb () {
-            console.log("CLOSED!", k)
-            cb()
-          }
+          if(sv.close) sv.close(cb)
+          else cb()
         }
       })) (cb)
 
@@ -157,5 +152,10 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
+
+
+
+
+
 
 
