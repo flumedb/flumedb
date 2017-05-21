@@ -51,7 +51,7 @@ function wrap(sv, since, isReady) {
     sync: function (fn) { return fn }
   }
 
-  var o = {ready: ready, since: sv.since, close: wrapper.async(sv.close || function (cb) { return cb() }) }
+  var o = {ready: ready, since: sv.since, close: sv.close }
   if(!sv.methods) throw new Error('a stream view must have methods property')
 
   for(var key in sv.methods) {
@@ -141,10 +141,15 @@ module.exports = function (log, isReady) {
       })
     },
     close: function (cb) {
-      cont.para(map(views, function (sv) {
+      cont.para(map(views, function (sv, k) {
+        console.log("CLOSE", k)
         return function (cb) {
-          if(sv.close) sv.close(cb)
-          else cb()
+          if(sv.close) sv.close(_cb)
+          else _cb()
+          function _cb () {
+            console.log("CLOSED!", k)
+            cb()
+          }
         }
       })) (cb)
 
@@ -152,4 +157,5 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
+
 
