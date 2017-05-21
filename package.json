@@ -19,7 +19,7 @@
     "flumelog-level": "^0.0.3",
     "flumelog-memory": "^0.1.2",
     "flumelog-offset": "^2.0.0",
-    "flumeview-reduce": "^1.0.2",
+    "flumeview-reduce": "^1.0.4",
     "statistics": "^3.3.0",
     "tape": "^4.6.2"
   },
