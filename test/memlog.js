@@ -85,6 +85,12 @@ module.exports = function (db) {
 
   })
 
+  tape('close', function (t) {
+    db.close(function () {
+      t.end()
+    })
+  })
+
 }
 
 if(!module.parent)
