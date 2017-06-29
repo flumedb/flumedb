@@ -137,6 +137,10 @@ but view reads will be delayed until those views are up to date.
 
 closes all flumeviews.
 
+### flumedb.closed => boolean
+
+set to true if `flumedb.close()` has been called
+
 ### flumelog
 
 The log is the heart of `flumedb`, it's the cannonical store of data, and all state is stored there.
@@ -210,14 +214,5 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
-
-
-
-
-
-
-
-
-
 
 
