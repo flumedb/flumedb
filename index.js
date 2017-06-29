@@ -19,10 +19,8 @@ function map(obj, iter) {
 module.exports = function (log, isReady) {
   var views = []
   var meta = {}
-  var closed = false
 
   log.get = count(log.get, 'get')
-//  log.stream = count(log.stream, 'stream')
 
   function count (fn, name) {
     meta[name] = meta[name] || 0
@@ -35,6 +33,7 @@ module.exports = function (log, isReady) {
   var ready = Obv()
   ready.set(isReady !== undefined ? isReady : true)
   var flume = {
+    closed: false,
     dir: log.filename ? path.dirname(log.filename) : null,
     //stream from the log
     since: log.since,
@@ -67,7 +66,7 @@ module.exports = function (log, isReady) {
         pull(
           log.stream({gt: upto, live: true, seqs: true, values: true}),
           sv.createSink(function (err) {
-            if(err && !closed) console.error(err)
+            if(err && !flume.closed) console.error(err)
           })
         )
       })
@@ -97,8 +96,8 @@ module.exports = function (log, isReady) {
       })
     },
     close: function (cb) {
-      if(closed) throw new Error('already closed')
-      closed = true
+      if(flume.closed) throw new Error('already closed')
+      flume.closed = true
       cont.para(map(views, function (sv, k) {
         return function (cb) {
           if(sv.close) sv.close(cb)
@@ -110,6 +109,8 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
+
+
 
 
 
