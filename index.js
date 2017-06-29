@@ -1,72 +1,13 @@
 'use strict'
 var cont = require('cont')
-var PullCont = require('pull-cont')
 var pull = require('pull-stream')
+var PullCont = require('pull-cont')
 var path = require('path')
 var Obv = require('obv')
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
 
-function wrap(sv, since, isReady) {
-  var waiting = []
-
-  sv.since(function (upto) {
-    if(!isReady.value) return
-    while(waiting.length && waiting[0].seq <= upto)
-      waiting.shift().cb()
-  })
-
-  isReady(function (ready) {
-    if(!ready) return
-    var upto = sv.since.value
-    if(upto == undefined) return
-    while(waiting.length && waiting[0].seq <= upto)
-      waiting.shift().cb()
-  })
-
-  function ready (cb) {
-    if(isReady.value && since.value != null && since.value === sv.since.value) cb()
-    else
-      since.once(function (upto) {
-        if(isReady.value && upto === sv.since.value) cb()
-        else waiting.push({seq: upto, cb: cb})
-      })
-  }
-
-  var wrapper = {
-    source: function (fn) {
-      return function (opts) {
-        return PullCont(function (cb) {
-          ready(function () { cb(null, fn(opts)) })
-        })
-      }
-    },
-    async: function (fn) {
-      return function (opts, cb) {
-        ready(function () {
-          fn(opts, cb)
-        })
-      }
-    },
-    sync: function (fn) { return fn }
-  }
-
-  var o = {ready: ready, since: sv.since, close: sv.close }
-  if(!sv.methods) throw new Error('a stream view must have methods property')
-
-  for(var key in sv.methods) {
-    var type = sv.methods[key]
-    var fn = sv[key]
-    if(typeof fn !== 'function') throw new Error('expected function named:'+key+'of type: '+type)
-    //type must be either source, async, or sync
-    o[key] = wrapper[type](fn)
-  }
-
-  o.methods = sv.methods
-
-  return o
-}
-
+var wrap = require('./wrap')
 
 function map(obj, iter) {
   var o = {}
@@ -77,6 +18,20 @@ function map(obj, iter) {
 
 module.exports = function (log, isReady) {
   var views = []
+  var meta = {}
+  var closed = false
+
+  log.get = count(log.get, 'get')
+//  log.stream = count(log.stream, 'stream')
+
+  function count (fn, name) {
+    meta[name] = meta[name] || 0
+    return function (a, b) {
+      meta[name] ++
+      fn.call(this, a, b)
+    }
+  }
+
   var ready = Obv()
   ready.set(isReady !== undefined ? isReady : true)
   var flume = {
@@ -84,6 +39,7 @@ module.exports = function (log, isReady) {
     //stream from the log
     since: log.since,
     ready: ready,
+    meta: meta,
     append: function (value, cb) {
       return log.append(value, cb)
     },
@@ -106,12 +62,12 @@ module.exports = function (log, isReady) {
       var sv = createView(log, name)
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
-
+      meta[name] = flume[name].meta
       sv.since.once(function (upto) {
         pull(
           log.stream({gt: upto, live: true, seqs: true, values: true}),
           sv.createSink(function (err) {
-            if(err) console.error(err)
+            if(err && !closed) console.error(err)
           })
         )
       })
@@ -141,6 +97,8 @@ module.exports = function (log, isReady) {
       })
     },
     close: function (cb) {
+      if(closed) throw new Error('already closed')
+      closed = true
       cont.para(map(views, function (sv, k) {
         return function (cb) {
           if(sv.close) sv.close(cb)
@@ -152,6 +110,7 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
+
 
 
 
