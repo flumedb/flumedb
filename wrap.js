@@ -32,7 +32,6 @@ module.exports = function wrap(sv, since, isReady) {
   var wrapper = {
     source: function (fn, name) {
       return function (opts) {
-        console.log(name, JSON.stringify(opts))
         meta[name] ++
         return pull(PullCont(function (cb) {
           ready(function () { cb(null, fn(opts)) })
