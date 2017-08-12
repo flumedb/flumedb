@@ -62,11 +62,13 @@ module.exports = function (log, isReady) {
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
       meta[name] = flume[name].meta
-      sv.since.once(function (upto) {
+      sv.since.once(function rebuild (upto) {
         pull(
           log.stream({gt: upto, live: true, seqs: true, values: true}),
           sv.createSink(function (err) {
-            if(err && !flume.closed) console.error(err)
+            if(err && !flume.closed) throw err
+            else if(!flume.closed)
+              sv.since.once(rebuild)
           })
         )
       })
@@ -78,13 +80,13 @@ module.exports = function (log, isReady) {
         return function (cb) {
           sv.destroy(function (err) {
             if(err) return cb(err)
-            sv.since.once(function (upto) {
-              pull(
-                log.stream({gt: upto, live: true, seqs: true, values: true}),
-                sv.createSink(function (err) {
-                  if(err) console.error(err)
-                })
-              )
+            //destroy should close the sink stream,
+            //which will restart the write.
+            var rm = sv.since(function (v) {
+              if(v === log.since.value) {
+                rm()
+                cb()
+              }
             })
           })
         }
@@ -96,7 +98,7 @@ module.exports = function (log, isReady) {
       })
     },
     close: function (cb) {
-      if(flume.closed) throw new Error('already closed')
+      if(flume.closed) return cb()
       flume.closed = true
       cont.para(map(views, function (sv, k) {
         return function (cb) {
@@ -109,13 +111,3 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
-
-
-
-
-
-
-
-
-
-
