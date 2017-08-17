@@ -47,7 +47,7 @@ var Flume = require('flumedb')
 
 var db = Flume(MemLog())
   //the api of flumeview-reduce will be mounted at db.sum...
-  .use('sum', Reduce(function (acc, item) {
+  .use('sum', Reduce(1, function (acc, item) {
     return (acc || 0) + item.foo
   }))
 
