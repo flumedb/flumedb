@@ -7,6 +7,7 @@ var Flume = require('../')
 
 var MemLog = require('flumelog-memory')
 var Reduce = require('flumeview-reduce')
+var Obv = require('obv')
 
 module.exports = function (db) {
   db.use('stats', Reduce(1, function (acc, data) {
@@ -85,6 +86,30 @@ module.exports = function (db) {
 
   })
 
+  tape('rebuild a view that is ahead', function (t) {
+    var obv = Obv()
+    var since = db.since.value+1
+    obv.set(since)
+    var reset = false
+    db.use('ahead', function (log, name) {
+      return {
+        methods: {},
+        since: obv,
+        createSink: function (opts) {
+          console.log(obv.value, db.since.value)
+          t.ok(obv.value <= db.since.value, 'createSink should not be called unless within an acceptable range')
+          t.ok(reset)
+          t.end()
+        },
+        destroy: function (cb) {
+          reset = true
+          obv.set(-1)
+          cb()
+        }
+      }
+    })
+  })
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
@@ -95,4 +120,5 @@ module.exports = function (db) {
 
 if(!module.parent)
   module.exports(Flume(MemLog()))
+
 
