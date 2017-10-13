@@ -62,15 +62,20 @@ module.exports = function (log, isReady) {
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
       meta[name] = flume[name].meta
-      sv.since.once(function rebuild (upto) {
-        pull(
-          log.stream({gt: upto, live: true, seqs: true, values: true}),
-          sv.createSink(function (err) {
-            if(err && !flume.closed) throw err
-            else if(!flume.closed)
-              sv.since.once(rebuild)
-          })
-        )
+      sv.since.once(function build (upto) {
+        log.since.once(function (since) {
+          if(upto > since)
+            sv.destroy(function () { build(-1) })
+          else
+            pull(
+              log.stream({gt: upto, live: true, seqs: true, values: true}),
+              sv.createSink(function (err) {
+                if(err && !flume.closed) throw err
+                else if(!flume.closed)
+                  sv.since.once(rebuild)
+              })
+            )
+        })
       })
 
       return flume
@@ -111,3 +116,4 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
+
