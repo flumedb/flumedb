@@ -4,6 +4,7 @@ var pull = require('pull-stream')
 var PullCont = require('pull-cont')
 var path = require('path')
 var Obv = require('obv')
+var explain = require('explain-error')
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
 
@@ -64,15 +65,17 @@ module.exports = function (log, isReady) {
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
         log.since.once(function (since) {
-          if(upto > since)
+          if(upto > since) {
             sv.destroy(function () { build(-1) })
-          else
+          } else
             pull(
               log.stream({gt: upto, live: true, seqs: true, values: true}),
               sv.createSink(function (err) {
-                if(err && !flume.closed) throw err
-                else if(!flume.closed)
-                  sv.since.once(rebuild)
+                if(!flume.closed) {
+                  if(err)
+                    console.error(explain(err, 'view stream error'))
+                  sv.since.once(build)
+                }
               })
             )
         })
