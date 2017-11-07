@@ -84,7 +84,7 @@ other modules that may come in useful
 
 * [flumedb/flumecli](https://github.com/flumedb/flumecli) instance command line interface
 * [flumedb/aligned-block-file](https://github.com/flumedb/aligned-block-file) read and write to a file with aligned blocks that are easy to cache.
-* [flumedb/test-flumelog](https://github.com/flumedb/test-flumedb) reusable tests for a flumelog.
+* [flumedb/test-flumelog](https://github.com/flumedb/test-flumelog) reusable tests for a flumelog.
 
 ## api
 
