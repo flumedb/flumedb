@@ -205,7 +205,7 @@ If they type is `async` or `source` the actual call to the `flumeview[key]` meth
 be delayed until `flumeview.since` is in up to date with the log.
 `sync` type methods will be called immediately.
 
-#### flumeview[name].ready (cb)
+#### flumeview.ready (cb)
 
 A `ready` method is also added to each mounted `flumeview` which takes a callback
 which will be called exactly once, when that view is up to date with the log
