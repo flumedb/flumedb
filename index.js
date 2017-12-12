@@ -5,6 +5,7 @@ var PullCont = require('pull-cont')
 var path = require('path')
 var Obv = require('obv')
 var explain = require('explain-error')
+var Looper = require('pull-looper')
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
 
@@ -15,6 +16,16 @@ function map(obj, iter) {
   for(var k in obj)
     o[k] = iter(obj[k], k, obj)
   return o
+}
+
+function asyncify () {
+  return function (read) {
+    return function (abort, cb) {
+      setImmediate(function () {
+        read(abort, cb)
+      })
+    }
+  }
 }
 
 module.exports = function (log, isReady) {
@@ -46,7 +57,7 @@ module.exports = function (log, isReady) {
     stream: function (opts) {
       return PullCont(function (cb) {
         log.since.once(function () {
-          cb(null, log.stream(opts))
+          cb(null, pull(log.stream(opts), Looper))
         })
       })
     },
@@ -70,6 +81,7 @@ module.exports = function (log, isReady) {
           } else
             pull(
               log.stream({gt: upto, live: true, seqs: true, values: true}),
+              Looper,
               sv.createSink(function (err) {
                 if(!flume.closed) {
                   if(err)
