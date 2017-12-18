@@ -16,6 +16,15 @@ function map(obj, iter) {
   return o
 }
 
+function merge (opts, toMerge, overwrite) {
+  Object.keys(toMerge).forEach(key => {
+    if(overwrite || !opts[key])
+      opts[key] = toMerge[key]
+  })
+
+  return opts
+}
+
 module.exports = function (log, isReady) {
   var views = []
   var meta = {}
@@ -30,6 +39,7 @@ module.exports = function (log, isReady) {
     }
   }
 
+  var opts = {}
   var ready = Obv()
   ready.set(isReady !== undefined ? isReady : true)
   var flume = {
@@ -58,7 +68,7 @@ module.exports = function (log, isReady) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
 
-      var sv = createView(log, name)
+      var sv = createView(log, name, opts)
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
       meta[name] = flume[name].meta
@@ -78,6 +88,10 @@ module.exports = function (log, isReady) {
         })
       })
 
+      return flume
+    },
+    useOptions: function (options, overwrite) {
+      merge(opts, options, overwrite)
       return flume
     },
     rebuild: function (cb) {
@@ -116,4 +130,3 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
-
