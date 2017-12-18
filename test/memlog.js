@@ -24,7 +24,7 @@ module.exports = function (db) {
 
   tape('simple', function (t) {
 
-    db.since(function (v) { 
+    db.since(function (v) {
       console.log("SINCE", v)
     }, false)
 
@@ -110,6 +110,51 @@ module.exports = function (db) {
     })
   })
 
+  tape('opts passing', function (t) {
+    t.plan(3)
+    var obv = Obv()
+    var since = db.since.value+1
+    obv.set(since)
+
+    var emptyView = {
+      methods: {},
+      since: obv,
+      createSink: function (opts) {
+      },
+      destroy: cb => cb(),
+      close: cb => cb()
+    }
+
+    var val1 = 'injected1'
+    db.useOptions({
+      InjectedValue: val1
+    })
+
+    db.use('inject', function (log, name, opts) {
+      t.equal(val1, opts.InjectedValue)
+      return emptyView
+    })
+
+    var val2 = 'injected2'
+    db.useOptions({
+      InjectedValue: val2
+    })
+
+    db.use('injectNoOverwrite', function (log, name, opts) {
+      t.equal(val1, opts.InjectedValue)
+      return emptyView
+    })
+
+    db.useOptions({
+      InjectedValue: val2
+    }, true)
+
+    db.use('injectOverwrite', function (log, name, opts) {
+      t.equal(val2, opts.InjectedValue)
+      return emptyView
+    })
+  })
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
@@ -120,5 +165,3 @@ module.exports = function (db) {
 
 if(!module.parent)
   module.exports(Flume(MemLog()))
-
-
