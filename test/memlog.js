@@ -9,7 +9,7 @@ var MemLog = require('flumelog-memory')
 var Reduce = require('flumeview-reduce')
 var Obv = require('obv')
 
-module.exports = function (db) {
+module.exports = function (db, testOpts = {}) {
   db.use('stats', Reduce(1, function (acc, data) {
     return statistics(acc, data.foo)
   }))
@@ -111,7 +111,7 @@ module.exports = function (db) {
   })
 
   tape('opts passing', function (t) {
-    t.plan(3)
+    t.plan(1)
     var obv = Obv()
     var since = db.since.value+1
     obv.set(since)
@@ -125,32 +125,8 @@ module.exports = function (db) {
       close: cb => cb()
     }
 
-    var val1 = 'injected1'
-    db.useOptions({
-      InjectedValue: val1
-    })
-
     db.use('inject', function (log, name, opts) {
-      t.equal(val1, opts.InjectedValue)
-      return emptyView
-    })
-
-    var val2 = 'injected2'
-    db.useOptions({
-      InjectedValue: val2
-    })
-
-    db.use('injectNoOverwrite', function (log, name, opts) {
-      t.equal(val1, opts.InjectedValue)
-      return emptyView
-    })
-
-    db.useOptions({
-      InjectedValue: val2
-    }, true)
-
-    db.use('injectOverwrite', function (log, name, opts) {
-      t.equal(val2, opts.InjectedValue)
+      t.equal(testOpts.InjectedValue, opts.InjectedValue)
       return emptyView
     })
   })

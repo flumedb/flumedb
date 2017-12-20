@@ -16,18 +16,18 @@ function map(obj, iter) {
   return o
 }
 
-function merge (opts, toMerge, overwrite) {
-  Object.keys(toMerge).forEach(key => {
-    if(overwrite || !opts[key])
-      opts[key] = toMerge[key]
-  })
-
-  return opts
-}
-
-module.exports = function (log, isReady) {
+module.exports = function (log, opts) {
   var views = []
   var meta = {}
+  var isReady
+
+  if ('object' === typeof opts) {
+    opts = opts || {}
+    isReady = opts.ready
+  } else {
+    isReady = opts
+    opts = {}
+  }
 
   log.get = count(log.get, 'get')
 
@@ -39,7 +39,6 @@ module.exports = function (log, isReady) {
     }
   }
 
-  var opts = {}
   var ready = Obv()
   ready.set(isReady !== undefined ? isReady : true)
   var flume = {
@@ -88,10 +87,6 @@ module.exports = function (log, isReady) {
         })
       })
 
-      return flume
-    },
-    useOptions: function (options, overwrite) {
-      merge(opts, options, overwrite)
       return flume
     },
     rebuild: function (cb) {
