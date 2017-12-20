@@ -16,9 +16,18 @@ function map(obj, iter) {
   return o
 }
 
-module.exports = function (log, isReady) {
+module.exports = function (log, opts) {
   var views = []
   var meta = {}
+  var isReady
+
+  if ('object' === typeof opts) {
+    opts = opts || {}
+    isReady = opts.ready
+  } else {
+    isReady = opts
+    opts = {}
+  }
 
   log.get = count(log.get, 'get')
 
@@ -58,7 +67,7 @@ module.exports = function (log, isReady) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
 
-      var sv = createView(log, name)
+      var sv = createView(log, name, opts)
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
       meta[name] = flume[name].meta
@@ -116,4 +125,3 @@ module.exports = function (log, isReady) {
   }
   return flume
 }
-
