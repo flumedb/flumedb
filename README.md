@@ -88,7 +88,7 @@ other modules that may come in useful
 
 ## api
 
-### flumedb
+### flumedb api
 
 #### flumedb.get (seq, cb)
 
@@ -141,10 +141,14 @@ closes all flumeviews.
 
 set to true if `flumedb.close()` has been called
 
-### flumelog
+---
 
-The log is the heart of `flumedb`, it's the cannonical store of data, and all state is stored there.
-The views are generated completely from the data in the log, so they can be blown away and regenerated easily.
+### flumelog api
+
+The flume _log_ is the heart of the `flumedb` setup - it's the cannonical store of data, and all state is stored there.
+In contrast, all flume _views_ are derived / generated completely from the data in the log, so they can be blown away and regenerated easily.
+
+Each type of log defines the following methods, which are then exposed by flumedb (e.g. `flumelog.get` is what defines `flumedb.get`) for you to access.
 
 #### flumelog.get (seq, cb)
 
@@ -171,7 +175,9 @@ Appends a value (or array of values) to the log, and returns the new latest sequ
 The filename of the directory this flumelog is persisted in
 (this is used by the views, if they are also persistent).
 
-### flumeview
+---
+
+### flumeview api
 
 A `flumeview` provides a read API, and a streaming sink that accepts data from the log
 (this will be managed by `flumedb`).
