@@ -19,10 +19,10 @@ Because we are using streams, views can be async. In my previous work,
 There where some simple things, such as maintaining a count or sum of all records,
 that where basically impossible with sublevel, but are easy with _flume_.
 
-The trick is that each view exposes an [observable](https://github.com/dominictarr/obv)
-that represents it's current state. An observable is like an event meets a value.
-it's an changing value that you can _observe_. Events, promises, or streams are similar,
-but not quite the right choice here.
+The trick is that each view exposes a observable, flumeview.since,
+this _represents_ it's current state - the sequence number the view is up to.
+An observable is like an event meets a value. it's an changing value that you can observe.
+Events, promises, or streams are similar, but not quite the right choice here.
 
 Data goes into the log, then is streamed to the view, view updates may be async,
 which means when your log write succeeds the view _might not be consistent yet_.
@@ -220,5 +220,6 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
 
 
