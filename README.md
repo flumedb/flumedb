@@ -133,11 +133,11 @@ this might take a while, because it must read completely through the whole datab
 the various read APIs and appending to the database while it is being rebuilt,
 but view reads will be delayed until those views are up to date.
 
-### flumedb.close(cb)
+#### flumedb.close(cb)
 
 closes all flumeviews.
 
-### flumedb.closed => boolean
+#### flumedb.closed => boolean
 
 set to true if `flumedb.close()` has been called
 
