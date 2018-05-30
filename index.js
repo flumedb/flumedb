@@ -78,9 +78,12 @@ module.exports = function (log, isReady) {
         log.since.once(function (since) {
           if(upto > since) {
             sv.destroy(function () { build(-1) })
-          } else
+          } else {
+            var opts = {gt: upto, live: true, seqs: true, values: true}
+            if (upto == -1)
+              opts.cache = false
             pull(
-              log.stream({gt: upto, live: true, seqs: true, values: true}),
+              log.stream(opts),
               Looper,
               sv.createSink(function (err) {
                 if(!flume.closed) {
@@ -90,6 +93,7 @@ module.exports = function (log, isReady) {
                 }
               })
             )
+          }
         })
       })
 

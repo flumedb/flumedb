@@ -16,11 +16,11 @@
     "pull-stream": "^3.5.0"
   },
   "devDependencies": {
-    "flumecodec": "0.0.0",
-    "flumelog-level": "^0.0.3",
-    "flumelog-memory": "^0.1.2",
-    "flumelog-offset": "^2.0.0",
-    "flumeview-reduce": "^1.2.1",
+    "flumecodec": "0.0.1",
+    "flumelog-level": "^0.0.4",
+    "flumelog-memory": "^0.1.3",
+    "flumelog-offset": "^3.2.7",
+    "flumeview-reduce": "^1.3.13",
     "statistics": "^3.3.0",
     "tape": "^4.6.2"
   },
