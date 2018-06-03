@@ -237,18 +237,3 @@ which will be called exactly once, when that view is up to date with the log
 
 MIT
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
