@@ -1,7 +1,7 @@
 {
   "name": "flumedb",
   "description": "",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "homepage": "https://github.com/dominictarr/flumedb",
   "repository": {
     "type": "git",
