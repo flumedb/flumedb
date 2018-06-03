@@ -9,28 +9,38 @@ and then Streaming Views on that log.
 This makes a star shaped pipeline - or rather, there is a pipeline
 from the log to each view, but the log is part of every pipeline.
 
-The Log compromises the main storage, messages can be appended,
-a view can materialize data from the view (denormalized), or they
-can point back to that data (normalized), as long as the views are
-generated purely from the data, so that they can be rebuilt exactly the same.
+The Log compromises the main storage, and provides durability.
+Views stream that data and build up their own model. They
+can point back to the main storage (normalized) or materialize it
+(denormalized). The views can use a structure optimized for
+the queries they provide, instead of durability, because the
+can rebuild from the main log.
 
-Because we are using streams, views can be async. In my previous work,
-[level-sublevel](https://github.com/dominictarr/level-sublevel), this was not the case.
-There where some simple things, such as maintaining a count or sum of all records,
-that where basically impossible with sublevel, but are easy with _flume_.
+In my previous modular database design, [level-sublevel](https://github.com/dominictarr/level-sublevel)
+indexes had to be written atomically with the data. This was
+okay for map style indexes, but made simple aggregations such
+as a count of all records difficult. Worse, rebuilding the indexes
+needed a batch migration between two versions of the database.
+This made developing interesting applications on level-sublevel quite difficult (such as [secure-scuttlebutt](https://scuttlebutt.nz))
+
+In flume, each view remembers a version number, and if the version
+number changes, it just rebuilds the view. This means view code can
+be easily updated, or new views added. It just rebuilds the view on
+startup. (though, this may take a few minutes on larger data)
 
 The trick is that each view exposes a observable, flumeview.since,
 this _represents_ it's current state - the sequence number the view is up to.
 An observable is like an event meets a value. it's an changing value that you can observe.
 Events, promises, or streams are similar, but not quite the right choice here.
 
-Data goes into the log, then is streamed to the view, view updates may be async,
-which means when your log write succeeds the view _might not be consistent yet_.
-So, when a read is performed on a view, flume will wait until that view is up to date
-with the main log at the time you called the view read, _then_ pass the read to the view.
-
-This means you can append to the log, and then in the callback, read a view,
-and you'll be able to read your writes in the view!
+Note, views are async. The main log my callback before the view is
+fully up to date, but if a read is made to a as yes unsynced view,
+it just waits for the view building to complete. This may make
+the call take longer (applications should show a progress bar
+for reindexing) but most of the application code can just assume
+that indexes are always up to date, because if you get a callback
+from an append to the log, a subsequent view read will return
+data consistent with that.
 
 This gives us the freedom to have async views,
 which gives us the freedom to have many different sorts of views!
@@ -38,7 +48,7 @@ which gives us the freedom to have many different sorts of views!
 ## example
 
 Take one `flumelog-*` module and zero or more `flumeview-*` modules,
-and glue them together with `flumedb`. 
+and glue them together with `flumedb`.
 
 ``` js
 var MemLog = require('flumelog-memory') // just store the log in memory
@@ -68,20 +78,26 @@ will grow much longer than the list of log modules.
 
 ### logs
 
+* [flumedb/flumelog-offset](https://github.com/flumedb/flumelog-offset) a log in a _file_ *recommended*.
 * [flumedb/flumelog-memory](https://github.com/flumedb/flumelog-memory) a log that is just an in memory array.
 * [flumedb/flumelog-level](https://github.com/flumedb/flumelog-level) a log on level.
-* [flumedb/flumelog-offset](https://github.com/flumedb/flumelog-offset) a log in a _file_ *recommended*.
+* [flumedb/flumelog-idb](https://github.com/flumedb/flumelog-idb) flumelog on top of indexeddb.
 
 ### views
 
 * [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
 * [flumedb/flumeview-level](https://github.com/flumedb/flumeview-level) an implemented index on level.
 * [flumedb/flumeview-query](https://github.com/flumedb/flumeview-query) functional query language.
+* [flumedb/flumeview-search](https://github.com/flumedb/flumeview-search) full text search.
+* [flumedb/flumeview-hashtable](https://github.com/flumedb/flumeview-hashtable) hashtable is ideal when you have uniqueish keys and do not need range queries.
+* [flumedb/flumeview-bloom](https://github.com/flumedb/flumeview-bloom) bloom filter lets you check if _may_ have something.
 
 ### other
 
-other modules that may come in useful
+other modules that may come in handy
 
+* [flumedb/flumecodec](https://github.com/flumedb/flumecodec) simple codecs, used in most views and logs.
+* [dominictarr/charwise](https://github.com/dominictarr/charwise) an order-preserving encoding compatible with bytewise, but faster.
 * [flumedb/flumecli](https://github.com/flumedb/flumecli) instance command line interface
 * [flumedb/aligned-block-file](https://github.com/flumedb/aligned-block-file) read and write to a file with aligned blocks that are easy to cache.
 * [flumedb/test-flumelog](https://github.com/flumedb/test-flumedb) reusable tests for a flumelog.
@@ -220,6 +236,19 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
