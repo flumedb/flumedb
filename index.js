@@ -43,10 +43,11 @@ module.exports = function (log, isReady) {
   }
 
   var reduce = async (maps, value) => {
-    maps.forEach(map => {
-      value = map(value)
-    })
-    return value
+    return maps.reduce(function (previous, map) {
+      return previous.then(function (previousValue) {
+        return map(previousValue)
+      })
+    }, Promise.resolve(value));
   }
 
   var ready = Obv()

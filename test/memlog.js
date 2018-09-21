@@ -184,6 +184,36 @@ module.exports = function (db) {
     })
   })
 
+  tape('async serial map', function (t) {
+    db.map(async value => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          value.chain = {
+            first: true
+          }
+          resolve(value)
+        }, Math.random() * 10)
+      })
+    }).map(async value => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          value.chain.second = true
+          resolve(value)
+        }, Math.random() * 10)
+      })
+    })
+
+    db.append({foo: 6}, function (err, seq) {
+      if (err) throw err
+      db.get(seq, function (getErr, value) {
+        if(getErr) throw getErr
+        console.log(  "GET", value)
+        t.deepEqual(value.chain, {first: true, second: true})
+        t.end()
+      })
+    })
+  })
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
