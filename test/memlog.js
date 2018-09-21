@@ -110,6 +110,51 @@ module.exports = function (db) {
     })
   })
 
+  tape('simple map', function (t) {
+    db.since(function (v) { 
+      console.log("SINCE", v)
+    }, false)
+
+    db.map(value => {
+      value.inc= value.foo + 1
+      return value
+    })
+
+    db.append({foo: 2}, function (err, seq) {
+      if (err) throw err
+      db.get(seq, function (getErr, value) {
+        if(getErr) throw getErr
+        console.log(  "GET", value)
+        t.deepEqual(value.inc, value.foo + 1)
+        t.end()
+      })
+    })
+  })
+
+  tape('serial map', function (t) {
+    db.since(function (v) { 
+      console.log("SINCE", v)
+    }, false)
+
+    db.map(value => {
+      value.double = value.foo + value.foo
+      return value
+    }).map(value => {
+      value.triple = value.double + value.foo
+      return value
+    })
+
+    db.append({foo: 4}, function (err, seq) {
+      if (err) throw err
+      db.get(seq, function (getErr, value) {
+        if(getErr) throw getErr
+        console.log(  "GET", value)
+        t.deepEqual(value.triple, value.foo * 3)
+        t.end()
+      })
+    })
+  })
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
