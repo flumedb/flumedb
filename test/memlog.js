@@ -111,10 +111,6 @@ module.exports = function (db) {
   })
 
   tape('simple map', function (t) {
-    db.since(function (v) { 
-      console.log("SINCE", v)
-    }, false)
-
     db.map(value => {
       value.inc= value.foo + 1
       return value
@@ -131,11 +127,23 @@ module.exports = function (db) {
     })
   })
 
-  tape('serial map', function (t) {
-    db.since(function (v) { 
-      console.log("SINCE", v)
-    }, false)
+  tape('stream map', function (t) {
+    db.map(value => {
+      value.stream = true
+      return value
+    })
 
+    pull(
+      db.stream({seqs: false, values: true}),
+      pull.collect(function (err, ary) {
+        if(err) throw err
+        t.deepEqual(ary[0], {foo: 1, inc: 2, stream: true})
+        t.end()
+      })
+    )
+  })
+
+  tape('serial map', function (t) {
     db.map(value => {
       value.double = value.foo + value.foo
       return value
@@ -150,6 +158,27 @@ module.exports = function (db) {
         if(getErr) throw getErr
         console.log(  "GET", value)
         t.deepEqual(value.triple, value.foo * 3)
+        t.end()
+      })
+    })
+  })
+
+  tape('async map', function (t) {
+    db.map(async value => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          value.dec = value.foo - 1
+          resolve(value)
+        }, Math.random() * 10)
+      })
+    })
+
+    db.append({foo: 5}, function (err, seq) {
+      if (err) throw err
+      db.get(seq, function (getErr, value) {
+        if(getErr) throw getErr
+        console.log(  "GET", value)
+        t.deepEqual(value.dec, value.foo - 1)
         t.end()
       })
     })

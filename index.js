@@ -42,7 +42,7 @@ module.exports = function (log, isReady) {
     }
   }
 
-  var reduce = (maps, value) => {
+  var reduce = async (maps, value) => {
     maps.forEach(map => {
       value = map(value)
     })
@@ -67,11 +67,32 @@ module.exports = function (log, isReady) {
         log.since.once(() => {
           cb(null, pull(
             log.stream(opts),
-            pull.map((data) => {
-              if (data.value) {
-                data.value = reduce(this.maps, data.value)
+            pull.asyncMap((data, cb) => {
+              // XXX: opts.values is true but sometimes it's only a seq number
+              // there's probably a more elegant way to check for that
+              if (!opts.values || 'number' === typeof data)
+                return cb(null, data)
+
+              var value
+              var valueOnly
+              if (opts.seqs) {
+                valueOnly = false
+                value = data.value
+              } else {
+                valueOnly = true
+                value = data
               }
-              return data
+
+              reduce(this.maps, value).then(result => {
+                if (valueOnly) {
+                  data = result
+                } else {
+                  data.value = result
+                }
+                cb(null, data)
+              }).catch(error => {
+                cb(error, data)
+              })
             }),
             Looper
           ))
@@ -81,8 +102,9 @@ module.exports = function (log, isReady) {
     get: function (seq, cb) {
       log.since.once(() => {
         log.get(seq, (err, value) => {
-          value = reduce(this.maps, value)
-          cb(err, value)
+          value = Promise.resolve(reduce(this.maps, value)).then(result => {
+            cb(err, result)
+          })
         })
       })
     },
