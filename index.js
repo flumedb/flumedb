@@ -31,6 +31,7 @@ function asyncify () {
 module.exports = function (log, isReady) {
   var views = []
   var meta = {}
+  var maps = [function (e) { return e }]
 
   log.get = count(log.get, 'get')
 
@@ -83,7 +84,7 @@ module.exports = function (log, isReady) {
     since: log.since,
     ready: ready,
     meta: meta,
-    maps: [],
+    maps: maps,
     append: function (value, cb) {
       return log.append(value, cb)
     },
@@ -96,7 +97,7 @@ module.exports = function (log, isReady) {
               if (hasNoValues(opts, data))
                 return cb(null, data)
 
-              reduce(this.maps, getValues(opts, data)).then(result => {
+              reduce(maps, getValues(opts, data)).then(result => {
                 cb(null, setValue(opts, data, result))
               }).catch(err => cb(err, data))
             }),
@@ -108,7 +109,7 @@ module.exports = function (log, isReady) {
     get: function (seq, cb) {
       log.since.once(() => {
         log.get(seq, (err, value) => {
-          value = Promise.resolve(reduce(this.maps, value)).then(result => {
+          value = Promise.resolve(reduce(maps, value)).then(result => {
             cb(err, result)
           })
         })
