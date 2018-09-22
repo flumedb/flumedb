@@ -54,22 +54,35 @@ module.exports = function (log, isReady, mapper) {
     return !opts.values || 'number' === typeof data
   }
 
-  var getValues = (opts, data) => {
-    if (opts.seqs) {
+  var getValues = (hasSeqs, data) => {
+    if (hasSeqs) {
       return data.value
     } else {
       return data
     }
   }
 
-  var setValue = (opts, data, result) => {
-    if (opts.seqs) {
+  var setValue = (hasSeqs, data, result) => {
+    if (hasSeqs) {
       data.value = result
     } else {
       data = result
     }
-
     return data
+  }
+
+  var mapStream = (opts) => {
+    var hasSeqs = !!opts.seqs
+    return paramap((data, cb) => {
+      var err = null
+
+      if (hasNoValues(hasSeqs, data))
+        return cb(err, data)
+
+      mapper(getValues(hasSeqs, data), (res) => {
+        cb(err, setValue(hasSeqs, data, res))
+      })
+    })
   }
 
   var ready = Obv()
@@ -152,6 +165,8 @@ module.exports = function (log, isReady, mapper) {
     }
   }
 
+  // XXX: doesn't seem very DRY, but it's more performant to check this now
+  // rather than waiting until runtime to figure out whether `mapper` exists
   if (mapper) {
     flume.get = function (seq, cb) {
       log.since.once(() => {
@@ -163,22 +178,11 @@ module.exports = function (log, isReady, mapper) {
       })
     }
     flume.stream = function (opts) {
-      var mapStream = paramap((data, cb) => {
-        var err = null
-
-        if (hasNoValues(opts, data))
-          return cb(err, data)
-
-        mapper(getValues(opts, data), (res) => {
-          cb(err, setValue(opts, data, res))
-        })
-      })
-
       return PullCont((cb) => {
         log.since.once(() => {
           cb(null, pull(
             log.stream(opts),
-            mapStream,
+            mapStream(opts),
             Looper
           ))
         })
