@@ -5,11 +5,11 @@ var MemLog = require('flumelog-memory')
 
 module.exports = function (flume) {
   var db = flume(MemLog(), false, (value, cb) => {
-      setTimeout(() => {
-        value.map = true
-        cb(value)
-      }, Math.random() * 10)
-    })
+    setTimeout(() => {
+      value.map = true
+      cb(value)
+    }, Math.random() * 10)
+  })
 
 
   tape('get map', function (t) {
