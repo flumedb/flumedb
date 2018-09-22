@@ -74,8 +74,8 @@ module.exports = function (log, isReady, mapper) {
       if (hasNoValues(data))
         return cb(err, data)
 
-      mapper(getValue(data), value => {
-        cb(err, setValue(data, value))
+      mapper(err, getValue(data), (_err, value) => {
+        cb(_err, setValue(data, value))
       })
     })
   }
@@ -91,9 +91,9 @@ module.exports = function (log, isReady, mapper) {
   var proxyCb = (cb) => {
     if (!mapper) return cb
 
-    return (err, val) => {
-      mapper(val, (res) => {
-        cb(err, res)
+    return (err, value) => {
+      mapper(err, value, (_err, _value) => {
+        cb(_err, _value)
       })
     }
   }

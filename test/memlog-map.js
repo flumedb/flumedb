@@ -4,10 +4,15 @@ var Flume = require('../')
 var MemLog = require('flumelog-memory')
 
 module.exports = function (flume) {
-  var db = flume(MemLog(), false, (value, cb) => {
+  var errorEnabled = false
+
+  var db = flume(MemLog(), false, (err, val, cb) => {
     setTimeout(() => {
-      value.map = true
-      cb(value)
+      if (true === errorEnabled) {
+        err = new Error('error enabled for testing')
+      }
+      val.map = true
+      cb(err, val)
     }, Math.random() * 10)
   })
 
@@ -20,7 +25,6 @@ module.exports = function (flume) {
       if(err) throw err
       console.log("GET", err, seq)
       db.get(seq, function (err, value) {
-
         if(err) throw err
         console.log(  "GET", value)
         t.deepEqual(value.foo, 1)
@@ -80,6 +84,18 @@ module.exports = function (flume) {
     })
   })
 
+  tape('get map with error', function (t) {
+    errorEnabled = true
+    db.append({foo: 13}, function (err, seq) {
+      if(err) throw err
+      console.log("GET", err, seq)
+      db.get(seq, function (err, value) {
+        console.log(  "GET", err, value)
+        t.ok(err)
+        t.end()
+      })
+    })
+  })
 
   tape('close', function (t) {
     db.close(function () {
