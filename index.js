@@ -33,6 +33,15 @@ module.exports = function (log, isReady) {
   var meta = {}
   var maps = [function (e) { return e }]
 
+  var _get = log.get
+  log.get = function (opts, cb) {
+    _get(opts, function (err, value) {
+      //console.log("GET RAW", value)
+      value = Promise.resolve(reduce(maps, value)).then(result => {
+        cb(err, result)
+      })
+    })
+  }
   log.get = count(log.get, 'get')
 
   function count (fn, name) {
@@ -116,7 +125,7 @@ module.exports = function (log, isReady) {
       })
     },
     map: function (fn) {
-      this.maps.push(fn)
+      maps.push(fn)
       return this
     },
     use: function (name, createView) {
