@@ -84,45 +84,6 @@ module.exports = function (log, isReady, mapper) {
     append: function (value, cb) {
       return log.append(value, cb)
     },
-    stream: function (opts) {
-      return PullCont((cb) => {
-        log.since.once(() => {
-          var args = [
-            log.stream(opts),
-            Looper
-          ]
-
-          var mapStream = paramap((data, cb) => {
-            var err = null
-
-            if (hasNoValues(opts, data))
-              return cb(err, data)
-
-            mapper(getValues(opts, data), (res) => {
-              cb(err, setValue(opts, data, res))
-            })
-          })
-
-          if (mapper)
-            args.splice(1, 0, mapStream);
-
-          cb(null, pull.apply(this, args))
-        })
-      })
-    },
-    get: function (seq, cb) {
-      log.since.once(() => {
-        log.get(seq, (err, value) => {
-          if (mapper) {
-            mapper(value, (res) => {
-              cb(err, res)
-            })
-          } else {
-            cb(err, value)
-          }
-        })
-      })
-    },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
@@ -188,6 +149,53 @@ module.exports = function (log, isReady, mapper) {
         }
       })) (cb)
 
+    }
+  }
+
+  if (mapper) {
+    flume.get = function (seq, cb) {
+      log.since.once(() => {
+        log.get(seq, (err, value) => {
+          mapper(value, (res) => {
+            cb(err, res)
+          })
+        })
+      })
+    }
+    flume.stream = function (opts) {
+      var mapStream = paramap((data, cb) => {
+        var err = null
+
+        if (hasNoValues(opts, data))
+          return cb(err, data)
+
+        mapper(getValues(opts, data), (res) => {
+          cb(err, setValue(opts, data, res))
+        })
+      })
+
+      return PullCont((cb) => {
+        log.since.once(() => {
+          cb(null, pull(
+            log.stream(opts),
+            mapStream,
+            Looper
+          ))
+        })
+      })
+    }
+  } else {
+    flume.get = function (seq, cb) {
+      log.since.once(function () {
+        log.get(seq, cb)
+      })
+    }
+    flume.stream = function (opts) {
+      return PullCont(function (cb) {
+        log.since.once(function () {
+          cb(null, pull(log.stream(opts), Looper))
+        })
+      })
     }
   }
   return flume
