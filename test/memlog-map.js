@@ -11,7 +11,6 @@ module.exports = function (flume) {
     }, Math.random() * 10)
   })
 
-
   tape('get map', function (t) {
     db.since(function (v) {
       console.log("SINCE", v)
@@ -19,7 +18,7 @@ module.exports = function (flume) {
 
     db.append({foo: 1}, function (err, seq) {
       if(err) throw err
-      console.log("GET", err, seq, db.stats)
+      console.log("GET", err, seq)
       db.get(seq, function (err, value) {
 
         if(err) throw err
@@ -34,7 +33,7 @@ module.exports = function (flume) {
   tape('stream map only values', function (t) {
     db.append({foo: 2}, function (err, seq) {
       if(err) throw err
-      console.log("GET", err, seq, db.stats)
+      console.log("GET", err, seq)
       pull(
         db.stream({seqs: false, values: true }),
         pull.collect(function (err, ary) {
@@ -49,7 +48,7 @@ module.exports = function (flume) {
   tape('stream map only seqs', function (t) {
     db.append({foo: 3}, function (err, seq) {
       if(err) throw err
-      console.log("GET", err, seq, db.stats)
+      console.log("GET", err, seq)
       pull(
         db.stream({seqs: true, values: false }),
         pull.collect(function (err, ary) {
@@ -64,7 +63,7 @@ module.exports = function (flume) {
   tape('stream map values and seqs', function (t) {
     db.append({foo: 4}, function (err, seq) {
       if(err) throw err
-      console.log("GET", err, seq, db.stats)
+      console.log("GET", err, seq)
       pull(
         db.stream({seqs: true, values: true }),
         pull.collect(function (err, ary) {
