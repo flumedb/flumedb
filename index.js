@@ -81,18 +81,10 @@ module.exports = function (log, isReady, mapper) {
   }
 
   var streamPullSteps = (opts) => {
-    if (mapper) {
-      return [
-        log.stream(opts),
-        mapStream(opts),
-        Looper
-      ]
-    } else {
-      return [
-        log.stream(opts),
-        Looper
-      ]
-    }
+    var steps = [ log.stream(opts), Looper ]
+    if (mapper)
+      steps.splice(1, 0, mapStream(opts))
+    return steps
   }
 
   var handleCb = (err, cb) => {
