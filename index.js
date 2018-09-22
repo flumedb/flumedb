@@ -31,10 +31,6 @@ function asyncify () {
 }
 
 module.exports = function (log, isReady, mapper) {
-  // XXX: default map, remove
-  if (!mapper) {
-    mapper = (x, cb) => cb(x)
-  }
 
   var views = []
   var meta = {}
@@ -91,29 +87,39 @@ module.exports = function (log, isReady, mapper) {
     stream: function (opts) {
       return PullCont((cb) => {
         log.since.once(() => {
-          cb(null, pull(
+          var args = [
             log.stream(opts),
-            paramap((data, cb) => {
-              var err = null
-
-              if (hasNoValues(opts, data))
-                return cb(err, data)
-
-              mapper(getValues(opts, data), (res) => {
-                cb(err, setValue(opts, data, res))
-              })
-            }),
             Looper
-          ))
+          ]
+
+          var mapStream = paramap((data, cb) => {
+            var err = null
+
+            if (hasNoValues(opts, data))
+              return cb(err, data)
+
+            mapper(getValues(opts, data), (res) => {
+              cb(err, setValue(opts, data, res))
+            })
+          })
+
+          if (mapper)
+            args.splice(1, 0, mapStream);
+
+          cb(null, pull.apply(this, args))
         })
       })
     },
     get: function (seq, cb) {
       log.since.once(() => {
         log.get(seq, (err, value) => {
-          mapper(value, (res) => {
-            cb(err, res)
-          })
+          if (mapper) {
+            mapper(value, (res) => {
+              cb(err, res)
+            })
+          } else {
+            cb(err, value)
+          }
         })
       })
     },
