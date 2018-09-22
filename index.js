@@ -6,6 +6,8 @@ var path = require('path')
 var Obv = require('obv')
 var explain = require('explain-error')
 var Looper = require('pull-looper')
+var paramap = require('pull-paramap')
+
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
 
@@ -28,7 +30,12 @@ function asyncify () {
   }
 }
 
-module.exports = function (log, isReady) {
+module.exports = function (log, isReady, mapper) {
+  // XXX: default map, remove
+  if (!mapper) {
+    mapper = (x, cb) => cb(x)
+  }
+
   var views = []
   var meta = {}
 
@@ -41,11 +48,6 @@ module.exports = function (log, isReady) {
       fn.call(this, a, b)
     }
   }
-
-  var reduce = async (maps, value) => maps.reduce(
-    (previous, map) => previous.then(map),
-    Promise.resolve(value)
-  )
 
   var hasNoValues = (opts, data) => {
     /* It seems to me that we should have a way of verifying when *only* seqs
@@ -83,7 +85,6 @@ module.exports = function (log, isReady) {
     since: log.since,
     ready: ready,
     meta: meta,
-    maps: [],
     append: function (value, cb) {
       return log.append(value, cb)
     },
@@ -92,13 +93,15 @@ module.exports = function (log, isReady) {
         log.since.once(() => {
           cb(null, pull(
             log.stream(opts),
-            pull.asyncMap((data, cb) => {
-              if (hasNoValues(opts, data))
-                return cb(null, data)
+            paramap((data, cb) => {
+              var err = null
 
-              reduce(this.maps, getValues(opts, data)).then(result => {
-                cb(null, setValue(opts, data, result))
-              }).catch(err => cb(err, data))
+              if (hasNoValues(opts, data))
+                return cb(err, data)
+
+              mapper(getValues(opts, data), (res) => {
+                cb(err, setValue(opts, data, res))
+              })
             }),
             Looper
           ))
@@ -108,15 +111,11 @@ module.exports = function (log, isReady) {
     get: function (seq, cb) {
       log.since.once(() => {
         log.get(seq, (err, value) => {
-          value = Promise.resolve(reduce(this.maps, value)).then(result => {
-            cb(err, result)
+          mapper(value, (res) => {
+            cb(err, res)
           })
         })
       })
-    },
-    map: function (fn) {
-      this.maps.push(fn)
-      return this
     },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
