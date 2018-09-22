@@ -42,12 +42,36 @@ module.exports = function (log, isReady) {
     }
   }
 
-  var reduce = async (maps, value) => {
-    return maps.reduce(function (previous, map) {
-      return previous.then(function (previousValue) {
-        return map(previousValue)
-      })
-    }, Promise.resolve(value));
+  var reduce = async (maps, value) => maps.reduce(
+    (previous, map) => previous.then(map),
+    Promise.resolve(value)
+  )
+
+  var hasNoValues = (opts, data) => {
+    /* It seems to me that we should have a way of verifying when *only* seqs
+     * are being passed, sometimes it looks like `opts.values` is `true` while
+     * `typeof data === number`. I'm not sure why this is, but it gives me the
+     * impression that there's a more elegant way to check for this.
+     */
+    return !opts.values || 'number' === typeof data
+  }
+
+  var getValues = (opts, data) => {
+    if (opts.seqs) {
+      return data.value
+    } else {
+      return data
+    }
+  }
+
+  var setValue = (opts, data, result) => {
+    if (opts.seqs) {
+      data.value = result
+    } else {
+      data = result
+    }
+
+    return data
   }
 
   var ready = Obv()
@@ -69,31 +93,12 @@ module.exports = function (log, isReady) {
           cb(null, pull(
             log.stream(opts),
             pull.asyncMap((data, cb) => {
-              // XXX: opts.values is true but sometimes it's only a seq number
-              // there's probably a more elegant way to check for that
-              if (!opts.values || 'number' === typeof data)
+              if (hasNoValues(opts, data))
                 return cb(null, data)
 
-              var value
-              var valueOnly
-              if (opts.seqs) {
-                valueOnly = false
-                value = data.value
-              } else {
-                valueOnly = true
-                value = data
-              }
-
-              reduce(this.maps, value).then(result => {
-                if (valueOnly) {
-                  data = result
-                } else {
-                  data.value = result
-                }
-                cb(null, data)
-              }).catch(error => {
-                cb(error, data)
-              })
+              reduce(this.maps, getValues(opts, data)).then(result => {
+                cb(null, setValue(opts, data, result))
+              }).catch(err => cb(err, data))
             }),
             Looper
           ))
