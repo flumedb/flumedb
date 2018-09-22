@@ -45,42 +45,35 @@ module.exports = function (log, isReady, mapper) {
     }
   }
 
-  var hasNoValues = (opts, data) => {
-    /* It seems to me that we should have a way of verifying when *only* seqs
-     * are being passed, sometimes it looks like `opts.values` is `true` while
-     * `typeof data === number`. I'm not sure why this is, but it gives me the
-     * impression that there's a more elegant way to check for this.
-     */
-    return !opts.values || 'number' === typeof data
-  }
-
-  var getValues = (hasSeqs, data) => {
-    if (hasSeqs) {
-      return data.value
-    } else {
-      return data
-    }
-  }
-
-  var setValue = (hasSeqs, data, result) => {
-    if (hasSeqs) {
-      data.value = result
-    } else {
-      data = result
-    }
-    return data
-  }
-
   var mapStream = (opts) => {
     var hasSeqs = !!opts.seqs
+    var hasNoValues = (data) => {
+      // XXX: Is this right? Sometimes `opts.value === true` but `data` is still
+      // a number rather than an object. Not sure how to handle this best.
+      return !opts.values || 'number' === typeof data
+    }
+    var getValue
+    var setValue
+
+    if (opts.seqs) {
+      getValue = (data) => data.value
+      setValue = (data, value) => {
+        data.value = value
+        return data
+      }
+    } else {
+      getValue = (data) => data
+      setValue = (data, value) => value
+    }
+
     return paramap((data, cb) => {
       var err = null
 
-      if (hasNoValues(hasSeqs, data))
+      if (hasNoValues(data))
         return cb(err, data)
 
-      mapper(getValues(hasSeqs, data), (res) => {
-        cb(err, setValue(hasSeqs, data, res))
+      mapper(getValue(data), (value) => {
+        cb(err, setValue(data, value))
       })
     })
   }
