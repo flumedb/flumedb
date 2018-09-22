@@ -63,8 +63,8 @@ module.exports = function (log, isReady, mapper) {
       setValue = (data, value) => value
     }
 
-    if (opts.values) {
-      hasNoValues = () => false
+    if (!opts.values) {
+      hasNoValues = () => true
     } else {
       hasNoValues = (data) => 'number' === typeof data
     }
