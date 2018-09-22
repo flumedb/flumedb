@@ -47,43 +47,44 @@ module.exports = function (log, isReady, mapper) {
   var ready = Obv()
   ready.set(isReady !== undefined ? isReady : true)
 
-  var mapStream = (opts) => {
-    var hasSeqs = !!opts.seqs
-    var hasNoValues = (data) => {
-      // XXX: Is this right? Sometimes `opts.value === true` but `data` is still
-      // a number rather than an object. Not sure how to handle this best.
-      return !opts.values || 'number' === typeof data
-    }
+  var mapStream = opts => {
     var getValue
     var setValue
+    var hasNoValues
 
     if (opts.seqs) {
-      getValue = (data) => data.value
+      getValue = data => data.value
       setValue = (data, value) => {
         data.value = value
         return data
       }
     } else {
-      getValue = (data) => data
+      getValue = data => data
       setValue = (data, value) => value
+    }
+
+    if (opts.values) {
+      hasNoValues = () => false
+    } else {
+      hasNoValues = (data) => 'number' === typeof data
     }
 
     return paramap((data, cb) => {
       var err = null
-
       if (hasNoValues(data))
         return cb(err, data)
 
-      mapper(getValue(data), (value) => {
+      mapper(getValue(data), value => {
         cb(err, setValue(data, value))
       })
     })
   }
 
-  var streamPullSteps = (opts) => {
+  var streamPullSteps = opts => {
     var steps = [ log.stream(opts), Looper ]
     if (mapper)
       steps.splice(1, 0, mapStream(opts))
+
     return steps
   }
 
