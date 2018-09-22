@@ -88,15 +88,13 @@ module.exports = function (log, isReady, mapper) {
     return steps
   }
 
-  var handleCb = (err, cb) => {
-    if (mapper) {
-      return (err, val) => {
-        mapper(val, (res) => {
-          cb(err, res)
-        })
-      }
-    } else {
-      return cb
+  var proxyCb = (cb) => {
+    if (!mapper) return cb
+
+    return (err, val) => {
+      mapper(val, (res) => {
+        cb(err, res)
+      })
     }
   }
 
@@ -119,7 +117,7 @@ module.exports = function (log, isReady, mapper) {
     },
     get: function (seq, cb) {
       log.since.once(function () {
-        log.get(seq, handleCb(null, cb))
+        log.get(seq, proxyCb(cb))
       })
     },
     use: function (name, createView) {
