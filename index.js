@@ -44,6 +44,9 @@ module.exports = function (log, isReady, mapper) {
     }
   }
 
+  var ready = Obv()
+  ready.set(isReady !== undefined ? isReady : true)
+
   var mapStream = (opts) => {
     var hasSeqs = !!opts.seqs
     var hasNoValues = (data) => {
@@ -76,9 +79,6 @@ module.exports = function (log, isReady, mapper) {
       })
     })
   }
-
-  var ready = Obv()
-  ready.set(isReady !== undefined ? isReady : true)
 
   var streamPullSteps = (opts) => {
     if (mapper) {
