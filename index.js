@@ -50,7 +50,7 @@ module.exports = function (log, isReady, mapper) {
   var mapStream = opts => {
     var getValue
     var setValue
-    var hasNoValues
+    var hasNoValues = opts.values === false
 
     if (opts.seqs) {
       getValue = data => data.value
@@ -63,15 +63,9 @@ module.exports = function (log, isReady, mapper) {
       setValue = (data, value) => value
     }
 
-    if (!opts.values) {
-      hasNoValues = () => true
-    } else {
-      hasNoValues = (data) => 'number' === typeof data
-    }
-
     return paramap((data, cb) => {
       var err = null
-      if (hasNoValues(data))
+      if (hasNoValues)
         return cb(err, data)
 
       mapper(err, getValue(data), (_err, value) => {
