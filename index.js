@@ -48,49 +48,20 @@ module.exports = function (log, isReady, mapper) {
   ready.set(isReady !== undefined ? isReady : true)
 
   var mapStream = opts => {
-    var getValue
-    var setValue
-    var hasNoValues = opts.values === false
-
-    if (opts.seqs) {
-      getValue = data => data.value
-      setValue = (data, value) => {
-        data.value = value
-        return data
-      }
-    } else {
-      getValue = data => data
-      setValue = (data, value) => value
-    }
-
-    return paramap((data, cb) => {
-      var err = null
-      if (hasNoValues)
-        return cb(err, data)
-
-      mapper(err, getValue(data), (_err, value) => {
-        cb(_err, setValue(data, value))
-      })
-    })
+    if (opts.values === false)
+      return
+    else if (opts.seqs === false)
+      return paramap((data, cb) => mapper(null, data, cb))
+    else
+      return paramap((data, cb) =>
+        mapper(null, data.value, (err, value) => {
+          data.value = value
+          cb(err, data)
+        })
+      )
   }
 
-  var streamPullSteps = opts => {
-    var steps = [ log.stream(opts), Looper ]
-    if (mapper)
-      steps.splice(1, 0, mapStream(opts))
-
-    return steps
-  }
-
-  var proxyCb = (cb) => {
-    if (!mapper) return cb
-
-    return (err, value) => {
-      mapper(err, value, (_err, _value) => {
-        cb(_err, _value)
-      })
-    }
-  }
+  var mapGet = cb => (err, value) => mapper(err, value, cb)
 
   var flume = {
     closed: false,
@@ -105,13 +76,17 @@ module.exports = function (log, isReady, mapper) {
     stream: function (opts) {
       return PullCont(function (cb) {
         log.since.once(function () {
-          cb(null, pull.apply(this, streamPullSteps(opts)))
+          cb(null, pull(
+            log.stream(opts),
+            mapper ? mapStream(opts) : null,
+            Looper
+          ))
         })
       })
     },
     get: function (seq, cb) {
       log.since.once(function () {
-        log.get(seq, proxyCb(cb))
+        log.get(seq, mapper ? mapGet(cb) : cb)
       })
     },
     use: function (name, createView) {
