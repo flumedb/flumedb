@@ -119,6 +119,15 @@ module.exports = function (db) {
 }
 
 if(!module.parent)
+  function map (value, cb) {
+    setImmediate(function () {
+      cb(null, value)
+    })
+  }
   module.exports(Flume(MemLog()))
+  module.exports(Flume(MemLog(), null, map))
+
+
+
 
 
