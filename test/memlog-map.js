@@ -2,6 +2,7 @@ var pull = require('pull-stream')
 var tape = require('tape')
 var Flume = require('../')
 var MemLog = require('flumelog-memory')
+var Reduce = require('flumeview-reduce')
 
 module.exports = function (flume) {
   var errorEnabled = false
@@ -17,6 +18,11 @@ module.exports = function (flume) {
       cb(null, val)
     }, Math.random() * 10)
   })
+
+  db.use('called', Reduce(1, function (acc, data) {
+      console.log("REDUCE", acc, data, (acc || 0) + data.called)
+    return (acc || 0) + data.called
+  }))
 
   tape('get map', function (t) {
     db.since(function (v) {
@@ -87,6 +93,16 @@ module.exports = function (flume) {
     })
   })
 
+  tape('check that reduce has happened', function (t) {
+    t.ok(db.called)
+    db.called.get(null, function (err, count) {
+      console.log(err, count)
+      if(err) throw err
+      t.equal(count, 4)
+      t.end()
+    })
+  })
+
   tape('get map with error', function (t) {
     errorEnabled = true
     db.append({foo: 13}, function (err, seq) {
@@ -100,6 +116,7 @@ module.exports = function (flume) {
     })
   })
 
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
@@ -109,6 +126,7 @@ module.exports = function (flume) {
 
 if(!module.parent)
   module.exports(Flume)
+
 
 
 
