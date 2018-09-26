@@ -6,13 +6,15 @@ var MemLog = require('flumelog-memory')
 module.exports = function (flume) {
   var errorEnabled = false
 
-  var db = flume(MemLog(), false, (err, val, cb) => {
+  var db = flume(MemLog(), false, (val, cb) => {
     setTimeout(() => {
       if (true === errorEnabled) {
-        err = new Error('error enabled for testing')
+        return cb(new Error('error enabled for testing'))
       }
+      val = JSON.parse(JSON.stringify(val))
+      val.called = (val.called  || 0) + 1
       val.map = true
-      cb(err, val)
+      cb(null, val)
     }, Math.random() * 10)
   })
 
@@ -29,6 +31,7 @@ module.exports = function (flume) {
         console.log(  "GET", value)
         t.deepEqual(value.foo, 1)
         t.deepEqual(value.map, true)
+        t.deepEqual(value.called, 1)
         t.end()
       })
     })
@@ -42,7 +45,7 @@ module.exports = function (flume) {
         db.stream({seqs: false, values: true }),
         pull.collect(function (err, ary) {
           if(err) throw err
-          t.deepEqual(ary, [ { foo: 1, map: true }, { foo: 2, map: true } ])
+          t.deepEqual(ary, [ { foo: 1, called: 1, map: true }, { foo: 2, called: 1, map: true } ])
           t.end()
         })
       )
@@ -73,10 +76,10 @@ module.exports = function (flume) {
         pull.collect(function (err, ary) {
           if(err) throw err
           t.deepEqual(ary,  [
-            { value: { foo: 1, map: true }, seq: 0 },
-            { value: { foo: 2, map: true }, seq: 1 },
-            { value: { foo: 3, map: true }, seq: 2 },
-            { value: { foo: 4, map: true }, seq: 3 }
+            { value: { foo: 1, called: 1, map: true }, seq: 0 },
+            { value: { foo: 2, called: 1, map: true }, seq: 1 },
+            { value: { foo: 3, called: 1, map: true }, seq: 2 },
+            { value: { foo: 4, called: 1, map: true }, seq: 3 }
           ])
           t.end()
         })
@@ -106,5 +109,6 @@ module.exports = function (flume) {
 
 if(!module.parent)
   module.exports(Flume)
+
 
 
