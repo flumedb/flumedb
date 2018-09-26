@@ -51,19 +51,36 @@ module.exports = function (log, isReady, mapper) {
     if (opts.values === false)
       return
     else if (opts.seqs === false)
-      return paramap((data, cb) => mapper(data, cb))
+      return paramap(mapper)
     else
-      return paramap((data, cb) =>
+      return paramap((data, cb) => {
+        console.log('DATA', data, opts)
         mapper(data.value, (err, value) => {
-          data.value = value
-          cb(err, data)
+          if(err) cb(err)
+          else {
+            data.value = value
+            cb(err, data)
+          }
         })
-      )
+      })
   }
 
-  var mapGet = cb => (err, value) => {
-    if(err) cb(err)
-    else mapper(value, cb)
+  function get (seq, cb) {
+    if(mapper)
+      log.get(seq, function (err, value) {
+        if(err) cb(err)
+        else mapper(value, cb)
+      })
+    else
+      log.get(seq, cb)
+  }
+
+  function stream (opts) {
+    return pull(
+        log.stream(opts),
+        mapper ? mapStream(opts) : null,
+        Looper
+      )
   }
 
   var flume = {
@@ -79,24 +96,22 @@ module.exports = function (log, isReady, mapper) {
     stream: function (opts) {
       return PullCont(function (cb) {
         log.since.once(function () {
-          cb(null, pull(
-            log.stream(opts),
-            mapper ? mapStream(opts) : null,
-            Looper
-          ))
+          cb(null, stream(opts))
         })
       })
     },
     get: function (seq, cb) {
       log.since.once(function () {
-        log.get(seq, mapper ? mapGet(cb) : cb)
+        get(seq, cb)
       })
     },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
 
-      var sv = createView(log, name)
+      var sv = createView(
+        {get: get, stream: stream, since: log.since}
+        , name)
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
       meta[name] = flume[name].meta
@@ -109,7 +124,7 @@ module.exports = function (log, isReady, mapper) {
             if (upto == -1)
               opts.cache = false
             pull(
-              log.stream(opts),
+              stream(opts),
               Looper,
               sv.createSink(function (err) {
                 if(!flume.closed) {
@@ -161,5 +176,6 @@ module.exports = function (log, isReady, mapper) {
   }
   return flume
 }
+
 
 
