@@ -45,23 +45,26 @@ module.exports = function (log, isReady, mapper) {
   }
 
   var ready = Obv()
-  ready.set(isReady !== undefined ? isReady : true)
+  ready.set(isReady !== false ? true : undefined)
 
   var mapStream = opts => {
     if (opts.values === false)
       return
     else if (opts.seqs === false)
-      return paramap((data, cb) => mapper(null, data, cb))
+      return paramap((data, cb) => mapper(data, cb))
     else
       return paramap((data, cb) =>
-        mapper(null, data.value, (err, value) => {
+        mapper(data.value, (err, value) => {
           data.value = value
           cb(err, data)
         })
       )
   }
 
-  var mapGet = cb => (err, value) => mapper(err, value, cb)
+  var mapGet = cb => (err, value) => {
+    if(err) cb(err)
+    else mapper(value, cb)
+  }
 
   var flume = {
     closed: false,
@@ -158,4 +161,5 @@ module.exports = function (log, isReady, mapper) {
   }
   return flume
 }
+
 
