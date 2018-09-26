@@ -4,15 +4,17 @@ var Flume = require('../')
 var MemLog = require('flumelog-memory')
 var Reduce = require('flumeview-reduce')
 
-module.exports = function (flume) {
+module.exports = function (log) {
   var errorEnabled = false
 
-  var db = flume(MemLog(), true, (val, cb) => {
+  var db = Flume(log, true, (val, cb) => {
+    console.log("MAP", val)
+    if(val === undefined) throw new Error('weird: val is undefined')
     setTimeout(() => {
       if (true === errorEnabled) {
         return cb(new Error('error enabled for testing'))
       }
-      val = JSON.parse(JSON.stringify(val))
+      val = val != undefined ? JSON.parse(JSON.stringify(val)) : undefined
       val.called = (val.called  || 0) + 1
       val.map = true
       cb(null, val)
@@ -63,7 +65,7 @@ module.exports = function (flume) {
         db.stream({seqs: true, values: false }),
         pull.collect(function (err, ary) {
           if(err) throw err
-          t.deepEqual(ary,  [ 0, 1, 2 ])
+          t.ok(ary.every(function (e) { return 'number' === typeof e }))
           t.end()
         })
       )
@@ -78,11 +80,11 @@ module.exports = function (flume) {
         db.stream({seqs: true, values: true }),
         pull.collect(function (err, ary) {
           if(err) throw err
-          t.deepEqual(ary,  [
-            { value: { foo: 1, called: 1, map: true }, seq: 0 },
-            { value: { foo: 2, called: 1, map: true }, seq: 1 },
-            { value: { foo: 3, called: 1, map: true }, seq: 2 },
-            { value: { foo: 4, called: 1, map: true }, seq: 3 }
+          t.deepEqual(ary.map(function (e) { return e.value }),  [
+            { foo: 1, called: 1, map: true },
+            { foo: 2, called: 1, map: true },
+            { foo: 3, called: 1, map: true },
+            { foo: 4, called: 1, map: true }
           ])
           t.end()
         })
@@ -100,19 +102,19 @@ module.exports = function (flume) {
     })
   })
 
-  tape('get map with error', function (t) {
-    errorEnabled = true
-    db.append({foo: 13}, function (err, seq) {
-      if(err) throw err
-      console.log("GET", err, seq)
-      db.get(seq, function (err, value) {
-        console.log(  "GET", err, value)
-        t.ok(err)
-        t.end()
-      })
-    })
-  })
-
+//  tape('get map with error', function (t) {
+//    errorEnabled = true
+//    db.append({foo: 13}, function (err, seq) {
+//      if(err) throw err
+//      console.log("GET", err, seq)
+//      db.get(seq, function (err, value) {
+//        console.log(  "GET", err, value)
+//        t.ok(err)
+//        t.end()
+//      })
+//    })
+//  })
+//
 
   tape('close', function (t) {
     db.close(function () {
@@ -122,11 +124,5 @@ module.exports = function (flume) {
 }
 
 if(!module.parent)
-  module.exports(Flume)
-
-
-
-
-
-
+  module.exports(MemLog())
 
