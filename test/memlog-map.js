@@ -7,7 +7,7 @@ var Reduce = require('flumeview-reduce')
 module.exports = function (flume) {
   var errorEnabled = false
 
-  var db = flume(MemLog(), false, (val, cb) => {
+  var db = flume(MemLog(), true, (val, cb) => {
     setTimeout(() => {
       if (true === errorEnabled) {
         return cb(new Error('error enabled for testing'))
@@ -20,7 +20,6 @@ module.exports = function (flume) {
   })
 
   db.use('called', Reduce(1, function (acc, data) {
-      console.log("REDUCE", acc, data, (acc || 0) + data.called)
     return (acc || 0) + data.called
   }))
 
@@ -31,10 +30,8 @@ module.exports = function (flume) {
 
     db.append({foo: 1}, function (err, seq) {
       if(err) throw err
-      console.log("GET", err, seq)
       db.get(seq, function (err, value) {
         if(err) throw err
-        console.log(  "GET", value)
         t.deepEqual(value.foo, 1)
         t.deepEqual(value.map, true)
         t.deepEqual(value.called, 1)
@@ -126,6 +123,9 @@ module.exports = function (flume) {
 
 if(!module.parent)
   module.exports(Flume)
+
+
+
 
 
 
