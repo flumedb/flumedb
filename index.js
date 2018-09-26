@@ -54,7 +54,6 @@ module.exports = function (log, isReady, mapper) {
       return paramap(mapper)
     else
       return paramap((data, cb) => {
-        console.log('DATA', data, opts)
         mapper(data.value, (err, value) => {
           if(err) cb(err)
           else {
@@ -110,7 +109,7 @@ module.exports = function (log, isReady, mapper) {
         throw new Error(name + ' is already in use!')
 
       var sv = createView(
-        {get: get, stream: stream, since: log.since}
+        {get: get, stream: stream, since: log.since, filename: log.filename}
         , name)
 
       views[name] = flume[name] = wrap(sv, log.since, ready)
@@ -176,6 +175,7 @@ module.exports = function (log, isReady, mapper) {
   }
   return flume
 }
+
 
 
 
