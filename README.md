@@ -106,6 +106,17 @@ other modules that may come in handy
 
 ### flumedb api
 
+#### Flume(flumelog, isReady?, mapper?) => flumedb
+
+construct a flumedb instance from a `flumelog`.
+if `isReady` is false, nothing will happen with the views until `flumedb.ready.set(true)`
+is called. This is useful if some sort of migration needs to happen before everything starts
+processing.
+
+`mapper` is an optional async function `function (value, cb) { cb(null, value) }`
+that map apply some transformation onto a data item before passing it to the views,
+`get` or `stream`.
+
 #### flumedb.get (seq, cb)
 
 This exposes `get` from the underlying `flumelog` module.
