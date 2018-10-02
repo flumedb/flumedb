@@ -82,6 +82,10 @@ module.exports = function (log, isReady, mapper) {
       )
   }
 
+  function throwIfClosed(name) {
+    if(flume.closed) throw new Error('cannot call:'+name+', flumedb instance closed')
+  }
+
   var flume = {
     closed: false,
     dir: log.filename ? path.dirname(log.filename) : null,
@@ -90,9 +94,11 @@ module.exports = function (log, isReady, mapper) {
     ready: ready,
     meta: meta,
     append: function (value, cb) {
+      throwIfClosed('append')
       return log.append(value, cb)
     },
     stream: function (opts) {
+      throwIfClosed('stream')
       return PullCont(function (cb) {
         log.since.once(function () {
           cb(null, stream(opts))
@@ -100,6 +106,7 @@ module.exports = function (log, isReady, mapper) {
       })
     },
     get: function (seq, cb) {
+      throwIfClosed('get')
       log.since.once(function () {
         get(seq, cb)
       })
@@ -107,12 +114,13 @@ module.exports = function (log, isReady, mapper) {
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
+      throwIfClosed('use')
 
       var sv = createView(
         {get: get, stream: stream, since: log.since, filename: log.filename}
         , name)
 
-      views[name] = flume[name] = wrap(sv, log.since, ready)
+      views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
         log.since.once(function (since) {
@@ -140,6 +148,7 @@ module.exports = function (log, isReady, mapper) {
       return flume
     },
     rebuild: function (cb) {
+      throwIfClosed('rebuild')
       return cont.para(map(views, function (sv) {
         return function (cb) {
           sv.destroy(function (err) {
@@ -175,7 +184,4 @@ module.exports = function (log, isReady, mapper) {
   }
   return flume
 }
-
-
-
 

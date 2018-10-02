@@ -1,10 +1,15 @@
 var PullCont = require('pull-cont')
 var pull = require('pull-stream')
 
-module.exports = function wrap(sv, since, isReady) {
+module.exports = function wrap(sv, flume) {
+  var since = flume.since, isReady = flume.ready
   var waiting = []
 
   var meta = {}
+
+  function throwIfClosed(name) {
+    if(flume.closed) throw new Error('cannot call:'+name+', flumedb instance closed')
+  }
 
   sv.since(function (upto) {
     if(!isReady.value) return
@@ -32,6 +37,7 @@ module.exports = function wrap(sv, since, isReady) {
   var wrapper = {
     source: function (fn, name) {
       return function (opts) {
+        throwIfClosed(name)
         meta[name] ++
         return pull(PullCont(function (cb) {
           ready(function () { cb(null, fn(opts)) })
@@ -40,6 +46,7 @@ module.exports = function wrap(sv, since, isReady) {
     },
     async: function (fn, name) {
       return function (opts, cb) {
+        throwIfClosed(name)
         meta[name] ++
         ready(function () {
           fn(opts, cb)
@@ -47,10 +54,11 @@ module.exports = function wrap(sv, since, isReady) {
       }
     },
     sync: function (fn, name) {
-      //return function (a, b) {
-        //meta[name] ++
-        return fn//(a, b)
-      //}
+      return function (a, b) {
+        throwIfClosed(name)
+        meta[name] ++
+        return fn(a, b)
+      }
     }
   }
 
@@ -70,4 +78,7 @@ module.exports = function wrap(sv, since, isReady) {
 
   return o
 }
+
+
+
 
