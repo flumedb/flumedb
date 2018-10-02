@@ -116,6 +116,25 @@ module.exports = function (db) {
     })
   })
 
+  tape('append after close', function (t) {
+    try {
+      db.append({bar: 4}, function (err, data, seq) {
+        t.fail('should have thrown')
+      })
+    } catch (err) {
+      t.ok(err)
+//      t.end()
+    }
+    try {
+      db.stats.get(function (err, data, seq) {
+        t.fail('should have thrown')
+      })
+    } catch (err) {
+      t.ok(err)
+    }
+    t.end()
+  })
+
 }
 
 if(!module.parent)
@@ -126,4 +145,7 @@ if(!module.parent)
   }
   module.exports(Flume(MemLog()))
   module.exports(Flume(MemLog(), null, map))
+
+
+
 
