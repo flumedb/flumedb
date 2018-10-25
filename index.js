@@ -6,7 +6,7 @@ var path = require('path')
 var Obv = require('obv')
 var explain = require('explain-error')
 var Looper = require('pull-looper')
-var paramap = require('pull-paramap')
+var asyncMap = require('pull-stream/throughs/async-map')
 
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
@@ -51,9 +51,9 @@ module.exports = function (log, isReady, mapper) {
     if (opts.values === false)
       return
     else if (opts.seqs === false)
-      return paramap(mapper)
+      return asyncMap(mapper)
     else
-      return paramap((data, cb) => {
+      return asyncMap((data, cb) => {
         mapper(data.value, (err, value) => {
           if(err) cb(err)
           else {
