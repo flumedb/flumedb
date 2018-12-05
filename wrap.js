@@ -25,9 +25,26 @@ module.exports = function wrap(sv, flume) {
       waiting.shift().cb()
   })
 
-  function ready (cb) {
+  function ready (cb, after) {
+    //view is already up to date with log, we can just go.
     if(isReady.value && since.value != null && since.value === sv.since.value) cb()
-    else
+    //use since: -1 to say you don't care about waiting. just give anything.
+    //we still want to wait until the view has actually loaded. but it doesn't
+    //need to be compared to the log's value.
+    else if(after < 0) {
+      sv.since.once(cb)
+    }
+    else if(after) {
+      if(!waiting.length || waiting[waiting.length - 1].seq <= after)
+        waiting.push({seq: after, cb: cb})
+      else {
+        //find the right point to insert this value.
+        for(var i = waiting.length - 2; i > 0; i--) {
+          waiting[i].seq <= after
+          waiting.splice({seq: after, cb: cb}, i+1, 0)
+        }
+      }
+    } else
       since.once(function (upto) {
         if(isReady.value && upto === sv.since.value) cb()
         else waiting.push({seq: upto, cb: cb})
@@ -40,7 +57,7 @@ module.exports = function wrap(sv, flume) {
         throwIfClosed(name)
         meta[name] ++
         return pull(PullCont(function (cb) {
-          ready(function () { cb(null, fn(opts)) })
+          ready(function () { cb(null, fn(opts)) }, opts && opts.since)
         }), pull.through(function () { meta[name] ++ }))
       }
     },
@@ -50,7 +67,7 @@ module.exports = function wrap(sv, flume) {
         meta[name] ++
         ready(function () {
           fn(opts, cb)
-        })
+        }, opts && opts.since)
       }
     },
     sync: function (fn, name) {
@@ -78,6 +95,12 @@ module.exports = function wrap(sv, flume) {
 
   return o
 }
+
+
+
+
+
+
 
 
 
