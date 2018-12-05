@@ -122,6 +122,7 @@ module.exports = function (log, isReady, mapper) {
 
       views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
+      //if the view is ahead of the log somehow, destroy the view and rebuild it.
       sv.since.once(function build (upto) {
         log.since.once(function (since) {
           if(upto > since) {
