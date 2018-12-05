@@ -238,6 +238,11 @@ If they type is `async` or `source` the actual call to the `flumeview[key]` meth
 be delayed until `flumeview.since` is in up to date with the log.
 `sync` type methods will be called immediately.
 
+If you would rather **_not wait_** for the view to get up to date with the log,
+but just want the data that is already in the index. provide the option
+`since: -1` to the view call. This works for async and source apis.
+If since is a positive number, the view will wait until it's at least up that up to date.
+
 #### flumeview.ready (cb)
 
 A `ready` method is also added to each mounted `flumeview` which takes a callback
@@ -247,4 +252,7 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
+
+
+
 
