@@ -38,10 +38,16 @@ module.exports = function wrap(sv, flume) {
     source: function (fn, name) {
       return function (opts) {
         throwIfClosed(name)
-        meta[name] ++
-        return pull(PullCont(function (cb) {
-          ready(function () { cb(null, fn(opts)) })
-        }), pull.through(function () { meta[name] ++ }))
+        if (opts && opts.awaitReady === false) {
+          // bypass waiting for ready
+          return fn(opts)
+        } else {
+          meta[name] ++
+          return pull(PullCont(function (cb) {
+            ready(function () { cb(null, fn(opts)) })
+          }), pull.through(function () { meta[name] ++ }))
+        }
+
       }
     },
     async: function (fn, name) {
