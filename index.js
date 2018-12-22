@@ -31,7 +31,6 @@ function asyncify () {
 }
 
 module.exports = function (log, isReady, mapper) {
-  var views = []
   var meta = {}
 
   log.get = count(log.get, 'get')
@@ -120,7 +119,7 @@ module.exports = function (log, isReady, mapper) {
         {get: get, stream: stream, since: log.since, filename: log.filename}
         , name)
 
-      views[name] = flume[name] = wrap(sv, flume)
+      flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
         log.since.once(function (since) {
@@ -149,7 +148,7 @@ module.exports = function (log, isReady, mapper) {
     },
     rebuild: function (cb) {
       throwIfClosed('rebuild')
-      return cont.para(map(views, function (sv) {
+      return cont.para(map(flume.views, function (sv) {
         return function (cb) {
           sv.destroy(function (err) {
             if(err) return cb(err)
@@ -173,14 +172,15 @@ module.exports = function (log, isReady, mapper) {
     close: function (cb) {
       if(flume.closed) return cb()
       flume.closed = true
-      cont.para(map(views, function (sv, k) {
+      cont.para(map(flume.views, function (sv, k) {
         return function (cb) {
           if(sv.close) sv.close(cb)
           else cb()
         }
       })) (cb)
 
-    }
+    },
+    views: {}
   }
   return flume
 }

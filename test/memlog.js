@@ -14,6 +14,14 @@ module.exports = function (db) {
     return statistics(acc, data.foo)
   }))
 
+  tape('views', function (t) {
+    console.log(db)
+    console.log(db.views)
+    t.notEqual(db.views, undefined, 'views are accessible')
+    t.equal(Object.keys(db.views).length, 1, 'view count is correct')
+    t.end()
+  })
+
   tape('empty db', function (t) {
     db.stats.get(function (err, value) {
       if(err) throw err
