@@ -30,11 +30,26 @@ function asyncify () {
   }
 }
 
+
 module.exports = function (log, isReady, mapper) {
   var views = []
   var meta = {}
 
   log.get = count(log.get, 'get')
+
+  function rebuildView (sv, cb) {
+    sv.destroy(function (err) {
+      if(err) return cb(err)
+      //destroy should close the sink stream,
+      //which will restart the write.
+      var rm = sv.since(function (v) {
+        if(v === log.since.value) {
+          rm()
+          cb()
+        }
+      })
+    })
+  }
 
   function count (fn, name) {
     meta[name] = meta[name] || 0
@@ -76,10 +91,10 @@ module.exports = function (log, isReady, mapper) {
 
   function stream (opts) {
     return pull(
-        log.stream(opts),
-        mapper ? mapStream(opts) : null,
-        Looper
-      )
+      log.stream(opts),
+      mapper ? mapStream(opts) : null,
+      Looper
+    )
   }
 
   function throwIfClosed(name) {
@@ -110,6 +125,36 @@ module.exports = function (log, isReady, mapper) {
       log.since.once(function () {
         get(seq, cb)
       })
+    },
+    del: function (seq, cb) {
+      throwIfClosed('del')
+      log.since.once(() => log.del(seq, (err) => {
+        if (err) return cb(err)
+
+        // Delete item from each view, then callback.
+        Promise.all(Object.values(views).map(view =>
+          new Promise((resolve, reject) => {
+
+            // Simple callback handler for promises.
+            const promiseCb = (err) => {
+              if (err) {
+                reject(err)
+              } else {
+                resolve()
+              }
+            }
+
+            if (typeof view.del === 'function') {
+              // If view supports deletion, use `flumeview.del()` method.
+              view.del(seq, promiseCb)
+            } else {
+              // Otherwise, rebuild the view.
+              rebuildView(view, promiseCb)
+            }
+          })
+        )).then(() => cb(null, seq))
+          .catch((err) => cb(err))
+      }))
     },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
@@ -181,7 +226,7 @@ module.exports = function (log, isReady, mapper) {
       })) (cb)
 
     }
-  }
-  return flume
+}
+return flume
 }
 
