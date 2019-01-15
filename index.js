@@ -42,9 +42,9 @@ module.exports = function (log, isReady, mapper) {
       if(err) return cb(err)
       //destroy should close the sink stream,
       //which will restart the write.
-      var rm = sv.since(function (v) {
+      sv.since(function (v) {
+        // TODO: remove this listener
         if(v === log.since.value) {
-          rm()
           cb()
         }
       })
@@ -200,17 +200,16 @@ module.exports = function (log, isReady, mapper) {
             if(err) return cb(err)
             //destroy should close the sink stream,
             //which will restart the write.
-            var rm = sv.since(function (v) {
+            sv.since(function (v) {
+              // TODO: remove this listener
               if(v === log.since.value) {
-                rm()
                 cb()
               }
             })
           })
         }
-      }))
-      (function (err) {
-        if(err) cb(err) //hopefully never happens
+      }))(function (err) {
+        cb(err) //hopefully never happens
 
         //then restream each streamview, and callback when it's uptodate with the main log.
       })
