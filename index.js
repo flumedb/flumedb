@@ -43,6 +43,20 @@ module.exports = function (log, isReady, mapper) {
     }
   }
 
+  function rebuildView (sv, cb) {
+    sv.destroy(function (err) {
+      if(err) return cb(err)
+      //destroy should close the sink stream,
+      //which will restart the write.
+      sv.since(function (v) {
+        // TODO: remove this listener
+        if(v === log.since.value) {
+          cb()
+        }
+      })
+    })
+  }
+
   var ready = Obv()
   ready.set(isReady !== false ? true : undefined)
 
@@ -109,6 +123,36 @@ module.exports = function (log, isReady, mapper) {
       log.since.once(function () {
         get(seq, cb)
       })
+    },
+    del: function (seq, cb) {
+      throwIfClosed('del')
+      log.since.once(() => log.del(seq, (err) => {
+        if (err) return cb(err)
+
+        // Delete item from each view, then callback.
+        Promise.all(Object.values(flume.views).map(view =>
+          new Promise((resolve, reject) => {
+
+            // Simple callback handler for promises.
+            const promiseCb = (err) => {
+              if (err) {
+                reject(err)
+              } else {
+                resolve()
+              }
+            }
+
+            if (typeof view.del === 'function') {
+              // If view supports deletion, use `flumeview.del()` method.
+              view.del(seq, promiseCb)
+            } else {
+              // Otherwise, rebuild the view.
+              rebuildView(view, promiseCb)
+            }
+          })
+        )).then(() => cb(null, seq))
+          .catch((err) => cb(err))
+      }))
     },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
