@@ -156,7 +156,7 @@ module.exports = function (log, isReady, mapper) {
             //which will restart the write.
             var rm = sv.since(function (v) {
               if(v === log.since.value) {
-                rm()
+                setImmediate(() => rm())
                 cb()
               }
             })
