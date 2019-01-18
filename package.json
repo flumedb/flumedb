@@ -1,6 +1,6 @@
 {
   "name": "flumedb",
-  "description": "",
+  "description": "modular database made from streams of logs",
   "version": "1.0.2",
   "homepage": "https://github.com/dominictarr/flumedb",
   "repository": {
