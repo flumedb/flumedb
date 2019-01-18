@@ -167,12 +167,7 @@ module.exports = function (log, isReady, mapper) {
             })
           })
         }
-      }))
-      (function (err) {
-        if(err) cb(err) //hopefully never happens
-
-        //then restream each streamview, and callback when it's uptodate with the main log.
-      })
+      }))(cb)
     },
     close: function (cb) {
       if(flume.closed) return cb()
