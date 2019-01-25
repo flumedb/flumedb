@@ -151,8 +151,8 @@ module.exports = function (log, isReady, mapper) {
               rebuildView(view, promiseCb)
             }
           })
-        )).then(() => cb(null, seq))
-          .catch((err) => cb(err))
+        )).catch((err) => cb(err))
+          .then(() => cb(null, seq)) 
       }))
     },
     use: function (name, createView) {
