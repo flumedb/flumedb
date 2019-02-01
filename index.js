@@ -116,9 +116,9 @@ module.exports = function (log, isReady, mapper) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
       throwIfClosed('use')
-      const viewOpts = {get: get, stream: stream, since: log.since, filename: log.filename} 
+      const viewOpts = {get: get, stream: stream, since: log.since, filename: log.filename}
       if (log.db != null) {
-        viewOpts.db = sub(log.db, name)
+        viewOpts.level = (levelOpts) => sub(log.db, name, levelOpts)
       }
       var sv = createView(viewOpts , name)
 
