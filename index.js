@@ -7,6 +7,7 @@ var Obv = require('obv')
 var explain = require('explain-error')
 var Looper = require('pull-looper')
 var asyncMap = require('pull-stream/throughs/async-map')
+var sub = require('subleveldown')
 
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
@@ -115,10 +116,11 @@ module.exports = function (log, isReady, mapper) {
       if(~Object.keys(flume).indexOf(name))
         throw new Error(name + ' is already in use!')
       throwIfClosed('use')
-
-      var sv = createView(
-        {get: get, stream: stream, since: log.since, filename: log.filename}
-        , name)
+      const viewOpts = {get: get, stream: stream, since: log.since, filename: log.filename} 
+      if (log.db != null) {
+        viewOpts.db = sub(log.db, name)
+      }
+      var sv = createView(viewOpts , name)
 
       views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
