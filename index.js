@@ -179,8 +179,15 @@ module.exports = function (log, isReady, mapper) {
           if(sv.close) sv.close(cb)
           else cb()
         }
-      })) (cb)
-
+      }))(function (err) {
+        if (log.db != null) {
+          log.db.close(function (err2) {
+            cb(err || err2)
+          })
+        } else {
+          cb(err)
+        }
+      })
     }
   }
   return flume
