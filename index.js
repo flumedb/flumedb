@@ -136,7 +136,7 @@ module.exports = function (log, isReady, mapper) {
               sv.createSink(function (err) {
                 if(!flume.closed) {
                   if(err)
-                    console.error(explain(err, 'view stream error'))
+                    console.error(explain(err, 'view stream error, from:'+name))
                   sv.since.once(build)
                 }
               })
