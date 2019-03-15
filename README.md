@@ -168,6 +168,10 @@ closes all flumeviews.
 
 set to true if `flumedb.close()` has been called
 
+#### flumedb.views => object
+
+flumeviews that are currently being used by flumedb
+
 ---
 
 ### flumelog api
