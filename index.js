@@ -150,24 +150,23 @@ module.exports = function (log, isReady, mapper) {
       throwIfClosed('rebuild')
       return cont.para(map(flume.views, function (sv) {
         return function (cb) {
+          //destroying will stop createSink stream
+          //and flumedb will restart write.
           sv.destroy(function (err) {
             if(err) return cb(err)
-            //destroy should close the sink stream,
-            //which will restart the write.
+            //when the view is up to date with log again
+            //callback, but only once, and then stop observing.
+            //(note, rare race condition where sv might already be set,
+            //so called before rm is returned)
             var rm = sv.since(function (v) {
               if(v === log.since.value) {
-                rm()
-                cb()
+                var _cb = cb; cb = null; _cb()
               }
+              if(!cb && rm) rm()
             })
           })
         }
-      }))
-      (function (err) {
-        if(err) cb(err) //hopefully never happens
-
-        //then restream each streamview, and callback when it's uptodate with the main log.
-      })
+      }))(cb)
     },
     close: function (cb) {
       if(flume.closed) return cb()
