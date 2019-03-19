@@ -101,7 +101,7 @@ module.exports = function (log, isReady, mapper) {
   }
 
   function throwIfClosed(name) {
-    if(flume.closed) throw new Error('cannot call:'+name+', flumedb instance closed')
+    if(flume.closed) throw new Error(`cannot call: ${name}, flumedb instance closed`)
   }
 
   var flume = {
@@ -135,7 +135,7 @@ module.exports = function (log, isReady, mapper) {
         if (err) return cb(err)
 
         // Delete item from each view, then callback.
-        Promise.all(Object.values(views).map(view =>
+        Promise.all(Object.values(flume.views).map(view =>
           new Promise((resolve, reject) => {
 
             // Simple callback handler for promises.
@@ -161,7 +161,7 @@ module.exports = function (log, isReady, mapper) {
     },
     use: function (name, createView) {
       if(~Object.keys(flume).indexOf(name))
-        throw new Error(name + ' is already in use!')
+        throw new Error(`${name} is already in use!`)
       throwIfClosed('use')
 
       var sv = createView(
@@ -171,9 +171,6 @@ module.exports = function (log, isReady, mapper) {
       flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
-        if (log.since == null ) {
-          console.log('hmm', log)
-        }
         log.since.once(function (since) {
           if(upto > since) {
             sv.destroy(function () { build(-1) })
@@ -187,7 +184,7 @@ module.exports = function (log, isReady, mapper) {
               sv.createSink(function (err) {
                 if(!flume.closed) {
                   if(err)
-                    console.error(explain(err, 'view stream error, from:'+name))
+                    console.error(explain(err, `view stream error, from: ${name}`))
                   sv.since.once(build)
                 }
               })
@@ -198,25 +195,39 @@ module.exports = function (log, isReady, mapper) {
 
       return flume
     },
-    rebuild: function (cb) {
+    rebuild: function (seqs, cb) {
+      if (typeof seqs === 'function' && cb == null) {
+        cb = seqs
+        seqs = null
+      }
+
+      // pass an array!
+      if (typeof seqs === 'number') {
+        seqs = [ seqs ]
+      }
+
       throwIfClosed('rebuild')
       return cont.para(map(flume.views, function (sv) {
         return function (cb) {
-          //destroying will stop createSink stream
-          //and flumedb will restart write.
-          sv.destroy(function (err) {
-            if(err) return cb(err)
-            //when the view is up to date with log again
-            //callback, but only once, and then stop observing.
-            //(note, rare race condition where sv might already be set,
-            //so called before rm is returned)
-            var rm = sv.since(function (v) {
-              if(v === log.since.value) {
-                var _cb = cb; cb = null; _cb()
-              }
-              if(!cb && rm) rm()
+          if (typeof sv.rebuild === 'function' && seqs != null) {
+            sv.rebuild(seqs, cb)
+          } else {
+            //destroying will stop createSink stream
+            //and flumedb will restart write.
+            sv.destroy(function (err) {
+              if(err) return cb(err)
+              //when the view is up to date with log again
+              //callback, but only once, and then stop observing.
+              //(note, rare race condition where sv might already be set,
+              //so called before rm is returned)
+              var rm = sv.since(function (v) {
+                if(v === log.since.value) {
+                  var _cb = cb; cb = null; _cb()
+                }
+                if(!cb && rm) rm()
+              })
             })
-          })
+          }
         }
       }))(cb)
     },
