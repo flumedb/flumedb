@@ -52,11 +52,9 @@ module.exports = function (log, isReady, mapper) {
       const rm = sv.since(function (v) {
         if (shouldDelete === true) return rm()
 
-        if(v === log.since.value) {
+        if(cb != null && v === log.since.value) {
           shouldDelete = true
-          const _cb = cb
-          cb = null
-          _cb()
+          var _cb = cb; cb = null; _cb()
         }
       })
     })
@@ -195,22 +193,20 @@ module.exports = function (log, isReady, mapper) {
 
       return flume
     },
-    rebuild: function (seqs, cb) {
-      if (typeof seqs === 'function' && cb == null) {
-        cb = seqs
-        seqs = null
-      }
-
-      // pass an array!
-      if (typeof seqs === 'number') {
-        seqs = [ seqs ]
+    rebuild: function (items, cb) {
+      if (typeof items === 'function' && cb == null) {
+        cb = items
+        items = null
+      } else if (typeof items.seq == 'number') {
+        // we want an array, not a single item
+        items = [ items ]
       }
 
       throwIfClosed('rebuild')
       return cont.para(map(flume.views, function (sv) {
         return function (cb) {
-          if (typeof sv.rebuild === 'function' && seqs != null) {
-            sv.rebuild(seqs, cb)
+          if (typeof sv.rebuild === 'function' && items != null) {
+            sv.rebuild(items, cb)
           } else {
             //destroying will stop createSink stream
             //and flumedb will restart write.
@@ -221,7 +217,7 @@ module.exports = function (log, isReady, mapper) {
               //(note, rare race condition where sv might already be set,
               //so called before rm is returned)
               var rm = sv.since(function (v) {
-                if(v === log.since.value) {
+                if(cb != null && v === log.since.value) {
                   var _cb = cb; cb = null; _cb()
                 }
                 if(!cb && rm) rm()
