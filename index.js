@@ -49,10 +49,15 @@ module.exports = function (log, isReady, mapper) {
       if(err) return cb(err)
       //destroy should close the sink stream,
       //which will restart the write.
-      sv.since(function (v) {
-        // TODO: remove this listener
+      let shouldDelete = false
+      const rm = sv.since(function (v) {
+        if (shouldDelete === true) return rm()
+
         if(v === log.since.value) {
-          cb()
+          shouldDelete = true
+          const _cb = cb
+          cb = null
+          _cb()
         }
       })
     })
@@ -167,6 +172,9 @@ module.exports = function (log, isReady, mapper) {
       views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
+        if (log.since == null ) {
+          console.log('hmm', log)
+        }
         log.since.once(function (since) {
           if(upto > since) {
             sv.destroy(function () { build(-1) })

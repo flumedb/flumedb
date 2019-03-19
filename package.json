@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "flumecodec": "0.0.1",
-    "flumelog-level": "^0.0.4",
+    "flumelog-level": "github:flumedb/flumelog-level#up-to-date",
     "flumelog-memory": "^0.1.3",
     "flumelog-offset": "^3.3.1",
     "flumeview-reduce": "^1.3.13",
