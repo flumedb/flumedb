@@ -62,7 +62,7 @@ module.exports = function wrap(sv, flume) {
     }
   }
 
-  var o = {ready: ready, since: sv.since, close: sv.close, meta: meta, destroy: sv.destroy}
+  var o = { ready, since: sv.since, close: sv.close, meta, destroy: sv.destroy }
   if(!sv.methods) throw new Error('a stream view must have methods property')
 
   for(var key in sv.methods) {
