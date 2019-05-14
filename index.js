@@ -181,6 +181,20 @@ module.exports = function (log, isReady, mapper) {
     },
     views: {}
   }
+
+  for(var key in log.methods) {
+    var type = log.methods[key]
+    var fn = log[key]
+    if(typeof fn !== 'function') {
+      throw new Error(`expected function named: "${key}" of type: "${type}"`)
+    }
+    if(flume[key] != null) {
+      throw new Error(`log method "${key}" conflicts with flumedb method of the same name`)
+    }
+
+    flume[key] = log[key]
+  }
+
   return flume
 }
 
