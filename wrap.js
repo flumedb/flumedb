@@ -40,7 +40,10 @@ module.exports = function wrap(sv, flume) {
         throwIfClosed(name)
         meta[name] ++
         return pull(PullCont(function (cb) {
-          ready(function () { cb(null, fn(opts)) })
+          ready(function (err) {
+            if(err) cb(err)
+            else cb(null, fn(opts))
+          })
         }), pull.through(function () { meta[name] ++ }))
       }
     },
@@ -48,8 +51,9 @@ module.exports = function wrap(sv, flume) {
       return function (opts, cb) {
         throwIfClosed(name)
         meta[name] ++
-        ready(function () {
-          fn(opts, cb)
+        ready(function (err) {
+          if(err) cb(err)
+          else fn(opts, cb)
         })
       }
     },
@@ -62,7 +66,25 @@ module.exports = function wrap(sv, flume) {
     }
   }
 
-  var o = {ready: ready, since: sv.since, close: sv.close, meta: meta, destroy: sv.destroy}
+
+  function _close (err) {
+    while(waiting.length)
+      waiting.shift().cb(err)
+  }
+
+  var o = {
+    ready: ready,
+    since: sv.since,
+    close: function (err, cb) {
+      if('function' == typeof err)
+        cb = err, err = null
+      _close(err || new Error('closed'))
+      if(sv.close.length == 1) sv.close(cb)
+      else                     sv.close(err, cb)
+    },
+    meta: meta,
+    destroy: sv.destroy
+  }
   if(!sv.methods) throw new Error('a stream view must have methods property')
 
   for(var key in sv.methods) {
@@ -75,10 +97,7 @@ module.exports = function wrap(sv, flume) {
   }
 
   o.methods = sv.methods
-
   return o
 }
-
-
 
 
