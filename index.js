@@ -31,7 +31,6 @@ function asyncify () {
 }
 
 module.exports = function (log, isReady, mapper) {
-  var views = []
   var meta = {}
 
   log.get = count(log.get, 'get')
@@ -120,7 +119,7 @@ module.exports = function (log, isReady, mapper) {
         {get: get, stream: stream, since: log.since, filename: log.filename}
         , name)
 
-      views[name] = flume[name] = wrap(sv, flume)
+      flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
       sv.since.once(function build (upto) {
         log.since.once(function (since) {
@@ -149,7 +148,7 @@ module.exports = function (log, isReady, mapper) {
     },
     rebuild: function (cb) {
       throwIfClosed('rebuild')
-      return cont.para(map(views, function (sv) {
+      return cont.para(map(flume.views, function (sv) {
         return function (cb) {
           //destroying will stop createSink stream
           //and flumedb will restart write.
@@ -172,7 +171,7 @@ module.exports = function (log, isReady, mapper) {
     close: function (cb) {
       if(flume.closed) return cb()
       flume.closed = true
-      cont.para(map(views, function (sv, k) {
+      cont.para(map(flume.views, function (sv, k) {
         return function (cb) {
           if(sv.close) sv.close(cb)
           else cb()
@@ -184,8 +183,23 @@ module.exports = function (log, isReady, mapper) {
           log.close(cb)
       })
 
-    }
+    },
+    views: {}
   }
+
+  for(var key in log.methods) {
+    var type = log.methods[key]
+    var fn = log[key]
+    if(typeof fn !== 'function') {
+      throw new Error(`expected function named: "${key}" of type: "${type}"`)
+    }
+    if(flume[key] != null) {
+      throw new Error(`log method "${key}" conflicts with flumedb method of the same name`)
+    }
+
+    flume[key] = log[key]
+  }
+
   return flume
 }
 

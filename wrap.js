@@ -70,7 +70,6 @@ module.exports = function wrap(sv, flume) {
     }
   }
 
-
   function _close (err) {
     while(waiting.length)
       waiting.shift().cb(err)
@@ -103,4 +102,6 @@ module.exports = function wrap(sv, flume) {
   o.methods = sv.methods
   return o
 }
+
+
 

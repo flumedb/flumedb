@@ -14,6 +14,12 @@ module.exports = function (db) {
     return statistics(acc, data.foo)
   }))
 
+  tape('views', function (t) {
+    t.notEqual(db.views, undefined, 'views are accessible')
+    t.equal(Object.keys(db.views).length, 1, 'view count is correct')
+    t.end()
+  })
+
   tape('empty db', function (t) {
     t.ok(db.stats.close, 'stats view has close method')
 
