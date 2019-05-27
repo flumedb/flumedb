@@ -15,6 +15,8 @@ module.exports = function (db) {
   }))
 
   tape('empty db', function (t) {
+    t.ok(db.stats.close, 'stats view has close method')
+
     db.stats.get(function (err, value) {
       if(err) throw err
       t.equal(value, undefined)
@@ -105,7 +107,8 @@ module.exports = function (db) {
           reset = true
           obv.set(-1)
           cb()
-        }
+        },
+        close: function (cb) { cb () }
       }
     })
   })
@@ -137,7 +140,7 @@ module.exports = function (db) {
 
 }
 
-if(!module.parent)
+if(!module.parent) {
   function map (value, cb) {
     setImmediate(function () {
       cb(null, value)
@@ -145,7 +148,4 @@ if(!module.parent)
   }
   module.exports(Flume(MemLog()))
   module.exports(Flume(MemLog(), null, map))
-
-
-
-
+}
