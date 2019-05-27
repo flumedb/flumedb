@@ -27,11 +27,13 @@ module.exports = function wrap(sv, flume) {
 
   function ready (cb) {
     if(isReady.value && since.value != null && since.value === sv.since.value) cb()
-    else
+    else {
       since.once(function (upto) {
-        if(isReady.value && upto === sv.since.value) cb()
+        if(flume.closed) cb(new Error('flumedb: closed before log ready'))
+        else if(isReady.value && upto === sv.since.value) cb()
         else waiting.push({seq: upto, cb: cb})
       })
+    }
   }
 
   var wrapper = {
@@ -50,10 +52,12 @@ module.exports = function wrap(sv, flume) {
     async: function (fn, name) {
       return function (opts, cb) {
         throwIfClosed(name)
-        meta[name] ++
         ready(function (err) {
           if(err) cb(err)
-          else fn(opts, cb)
+          else {
+            meta[name] ++
+            fn(opts, cb)
+          }
         })
       }
     },
@@ -78,7 +82,7 @@ module.exports = function wrap(sv, flume) {
     close: function (err, cb) {
       if('function' == typeof err)
         cb = err, err = null
-      _close(err || new Error('closed'))
+      _close(err || new Error('flumedb:view closed'))
       if(sv.close.length == 1) sv.close(cb)
       else                     sv.close(err, cb)
     },
@@ -99,5 +103,4 @@ module.exports = function wrap(sv, flume) {
   o.methods = sv.methods
   return o
 }
-
 
