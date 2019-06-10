@@ -176,7 +176,12 @@ module.exports = function (log, isReady, mapper) {
           if(sv.close) sv.close(cb)
           else cb()
         }
-      })) (cb)
+      })) (function (err) {
+        if(!log.close)
+          cb(err)
+        else
+          log.close(cb)
+      })
 
     },
     views: {}
