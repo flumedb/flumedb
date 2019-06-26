@@ -4,12 +4,12 @@ A modular database made for moving logs with streams.
 
 ## architecture
 
-Flume is a modular database compromised of an Append Only Log,
-and then Streaming Views on that log.
+Flume is a modular database comprised of an Append Only Log
+and Streaming Views on that log.
 This makes a star shaped pipeline - or rather, there is a pipeline
 from the log to each view, but the log is part of every pipeline.
 
-The Log compromises the main storage, and provides durability.
+The Log is the main storage element and provides durability.
 Views stream that data and build up their own model. They
 can point back to the main storage (normalized) or materialize it
 (denormalized). The views can use a structure optimized for
