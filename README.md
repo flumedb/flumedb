@@ -34,7 +34,7 @@ An observable is like an event meets a value. it's an changing value that you ca
 Events, promises, or streams are similar, but not quite the right choice here.
 
 Note, views are async. The main log may callback before the view is
-fully up to date, but if a read is made to a as yes unsynced view,
+fully up to date, but if a read is made to an as yet unsynced view,
 it just waits for the view building to complete. This may make
 the call take longer (applications should show a progress bar
 for reindexing) but most of the application code can just assume
