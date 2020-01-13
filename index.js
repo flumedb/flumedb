@@ -137,7 +137,7 @@ module.exports = function (log, isReady, mapper) {
                 if(!flume.closed) {
                   if (err) {
                     console.error(explain(err, `rebuilding ${name} after view stream error`))
-                    build(-1)
+                    sv.destroy(() => build(-1))
                   } else {
                     sv.since.once(build)
                   }
