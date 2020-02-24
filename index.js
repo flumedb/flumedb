@@ -123,6 +123,8 @@ module.exports = function (log, isReady, mapper) {
       meta[name] = flume[name].meta
       //if the view is ahead of the log somehow, destroy the view and rebuild it.
       sv.since.once(function build (upto) {
+
+	const rebuildView = () => sv.destroy(() => build(-1))
         log.since.once(function (since) {
           if(upto > since) {
             sv.destroy(function () { build(-1) })
@@ -137,9 +139,9 @@ module.exports = function (log, isReady, mapper) {
                 if(!flume.closed) {
                   if (err) {
                     console.error(explain(err, `rebuilding ${name} after view stream error`))
-                    sv.destroy(() => build(-1))
+                    rebuildView()
                   } else {
-                    sv.since.once(build)
+                    rebuildView()
                   }
                 }
               })
