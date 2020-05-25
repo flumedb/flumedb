@@ -119,6 +119,24 @@ module.exports = function (db) {
     })
   })
 
+  tape('throws if you *use* a view without close method', function (t) {
+    t.plan(1)
+    t.throws(
+      () => {
+        db.use('naughtyView', function (log, name) {
+          return {
+            methods: {},
+            since: db.since,
+            createSink: function (opts) { },
+            destroy: function (cb) { }
+            // close: function (cb) { cb () } // << this is missing, so throw
+          }
+        })
+      },
+      /views in this version of flumedb require a .close method/
+    )
+  })
+
   tape('close', function (t) {
     db.close(function () {
       t.end()
