@@ -82,11 +82,15 @@ module.exports = function (log, isReady, mapper) {
   }
 
   function throwIfClosed(name) {
-    if(flume.closed) throw new Error('cannot call:'+name+', flumedb instance closed')
+    if(flume.closed) throw new Error(`FlumeDB cannot call method ${name} while database is closed`)
+  }
+  function throwIfRebuilding(name) {
+    if(flume.closed) throw new Error(`FlumeDB cannot call method ${name} while database is rebuilding`)
   }
 
   var flume = {
     closed: false,
+    rebuilding: false,
     dir: log.filename ? path.dirname(log.filename) : null,
     //stream from the log
     since: log.since,
@@ -145,8 +149,8 @@ module.exports = function (log, isReady, mapper) {
               stream(opts),
               Looper,
               sv.createSink(function (err) {
-                if(!flume.closed) {
-                  if (err) {
+                if(flume.closed === false) {
+                  if (err && flume.rebuilding === false) {
                     console.error(explain(err, `rebuilding ${name} after view stream error`))
                     rebuildView()
                   } else {
@@ -163,6 +167,10 @@ module.exports = function (log, isReady, mapper) {
     },
     rebuild: function (cb) {
       throwIfClosed('rebuild')
+      throwIfRebuilding('rebuild')
+
+      flume.rebuilding = true
+
       return cont.para(map(flume.views, function (sv) {
         return function (cb) {
           //destroying will stop createSink stream
@@ -181,7 +189,10 @@ module.exports = function (log, isReady, mapper) {
             })
           })
         }
-      }))(cb)
+      }))((...args) => {
+        flume.rebuilding = false
+        cb(...args)
+      })
     },
     close: function (cb) {
       if(flume.closed) return cb()
