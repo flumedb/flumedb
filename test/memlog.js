@@ -133,7 +133,7 @@ module.exports = function (db) {
           }
         })
       },
-      /views in this version of flumedb require a .close method/
+      /Error: FlumeDB view 'naughtyView' must implement method 'close'/
     )
   })
 
