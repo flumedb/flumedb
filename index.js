@@ -119,9 +119,18 @@ module.exports = function (log, isReady, mapper) {
         {get: get, stream: stream, since: log.since, filename: log.filename}
         , name)
 
-      if (typeof sv.close !== 'function') {
-        throw new Error('views in this version of flumedb require a .close method')
-      }
+      const requiredMethods = [
+        'close',
+        'createSink',
+        'destroy',
+        'since'
+      ]
+
+      requiredMethods.forEach((methodName) => {
+        if (typeof sv[methodName] !== 'function') {
+          throw new Error(`FlumeDB view '${name}' must implement method '${methodName}'`)
+        }
+      })
 
       flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
