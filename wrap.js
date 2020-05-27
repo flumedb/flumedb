@@ -88,6 +88,9 @@ module.exports = function wrap(sv, flume) {
   }
 
   var o = {
+    name: sv.name,
+    abortable: sv.abortable,
+    createSink: sv.createSink,
     ready: ready,
     since: sv.since,
     close: function (err, cb) {

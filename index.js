@@ -7,6 +7,7 @@ var Obv = require('obv')
 var explain = require('explain-error')
 var Looper = require('pull-looper')
 var asyncMap = require('pull-stream/throughs/async-map')
+var pullAbortable = require('pull-abortable')
 
 //take a log, and return a log driver.
 //the log has an api with `read`, `get` `since`
@@ -18,16 +19,6 @@ function map(obj, iter) {
   for(var k in obj)
     o[k] = iter(obj[k], k, obj)
   return o
-}
-
-function asyncify () {
-  return function (read) {
-    return function (abort, cb) {
-      setImmediate(function () {
-        read(abort, cb)
-      })
-    }
-  }
 }
 
 module.exports = function (log, isReady, mapper) {
@@ -87,6 +78,53 @@ module.exports = function (log, isReady, mapper) {
   function throwIfRebuilding(name) {
     if(flume.closed) throw new Error(`FlumeDB cannot call method ${name} while database is rebuilding`)
   }
+  const buildView = (sv) => {
+      sv.since.once(function build (upto) {
+        console.log(`Building view ${sv.name} from ${upto}`)
+        const rebuildView = () => {
+          console.log(`Auto-rebuild called for ${sv.name}`)
+          // TODO - create some debug logfile and log that we're rebuilding, what error was
+          // so that we have some visibility on how often this happens over time
+          sv.destroy(() => build(-1))
+        }
+
+        log.since.once(function (since) {
+          //if the view is ahead of the log somehow, destroy the view and rebuild it.
+          if(upto > since) rebuildView()
+          else {
+            var opts = {gt: upto, live: true, seqs: true, values: true}
+            if (upto == -1)
+              opts.cache = false
+
+            const abortable = pullAbortable();
+
+            flume.views[sv.name].abort = abortable.abort
+            console.log(`Starting stream: ${sv.name}`, opts)
+
+            pull(
+              stream(opts),
+              abortable,
+              Looper,
+              sv.createSink(function (err) {
+                if(flume.closed === false) {
+                  if (err) {
+                    if (err.abort) {
+                      console.log(`Aborted view ${sv.name}`)
+                    } else {
+                      console.log(err)
+                      console.error(explain(err, `rebuilding ${sv.name} after view stream error`))
+                      rebuildView()
+                    }
+                  } else {
+                    sv.since.once(build)
+                  }
+                }
+              })
+            )
+          }
+        })
+      })
+  }
 
   var flume = {
     closed: false,
@@ -119,53 +157,29 @@ module.exports = function (log, isReady, mapper) {
         throw new Error(name + ' is already in use!')
       throwIfClosed('use')
 
-      var sv = createView(
-        {get: get, stream: stream, since: log.since, filename: log.filename}
-        , name)
+      var sv = createView({
+        get,
+        stream,
+        since: log.since,
+        filename: log.filename,
+      }, name)
+
 
       if (typeof sv.close !== 'function') {
         throw new Error('views in this version of flumedb require a .close method')
       }
 
+      sv.name = name
+
       flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
 
-      //if the view is ahead of the log somehow, destroy the view and rebuild it.
-      sv.since.once(function build (upto) {
-        const rebuildView = () => {
-          // TODO - create some debug logfile and log that we're rebuilding, what error was
-          // so that we have some visibility on how often this happens over time
-          sv.destroy(() => build(-1))
-        }
-
-        log.since.once(function (since) {
-          if(upto > since) rebuildView()
-          else {
-            var opts = {gt: upto, live: true, seqs: true, values: true}
-            if (upto == -1)
-              opts.cache = false
-
-            pull(
-              stream(opts),
-              Looper,
-              sv.createSink(function (err) {
-                if(flume.closed === false) {
-                  if (err && flume.rebuilding === false) {
-                    console.error(explain(err, `rebuilding ${name} after view stream error`))
-                    rebuildView()
-                  } else {
-                    sv.since.once(build)
-                  }
-                }
-              })
-            )
-          }
-        })
-      })
+      buildView(sv)
 
       return flume
     },
     rebuild: function (cb) {
+      console.log('Rebuild method called')
       throwIfClosed('rebuild')
       throwIfRebuilding('rebuild')
 
@@ -176,13 +190,24 @@ module.exports = function (log, isReady, mapper) {
           //destroying will stop createSink stream
           //and flumedb will restart write.
           sv.destroy(function (err) {
+            console.log(`View destroyed: ${sv.name}`)
             if(err) return cb(err)
+            sv.abort({ abort: true })
+            sv.abort = () => {}
+            sv.since.set(-1)
+            buildView(sv)
             //when the view is up to date with log again
             //callback, but only once, and then stop observing.
             //(note, rare race condition where sv might already be set,
             //so called before rm is returned)
             var rm = sv.since(function (v) {
-              if(v === log.since.value) {
+              console.log('Status update', {
+                name: sv.name,
+                view: v,
+                log: log.since.value
+              })
+              if(v === log.since.value && cb) {
+                console.log('View is up-to-date:', sv.name)
                 var _cb = cb; cb = null; _cb()
               }
               if(!cb && rm) rm()
