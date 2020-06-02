@@ -41,8 +41,10 @@ module.exports = function wrap(sv, flume) {
       else {
         //find the right point to insert this value.
         for(var i = waiting.length - 2; i > 0; i--) {
-          waiting[i].seq <= after
-          waiting.splice({seq: after, cb: cb}, i+1, 0)
+          if(waiting[i].seq <= after) {
+            waiting.splice(i+1, 0, { seq: after, cb: cb})
+            break
+          }
         }
       }
     } else {
