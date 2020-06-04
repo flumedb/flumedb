@@ -50,20 +50,24 @@ which gives us the freedom to have many different sorts of views!
 Take one `flumelog-*` module and zero or more `flumeview-*` modules,
 and glue them together with `flumedb`.
 
-``` js
+```javascript
 var MemLog = require('flumelog-memory') // just store the log in memory
-var Reduce = require('flumeview-reduce') //just a reduce function.
+var Reduce = require('flumeview-reduce') // just a reduce function.
 var Flume = require('flumedb')
 
 var db = Flume(MemLog())
-  //the api of flumeview-reduce will be mounted at db.sum...
-  .use('sum', Reduce(1, function (acc, item) {
-    return (acc || 0) + item.foo
-  }))
+  // the api of flumeview-reduce will be mounted at db.sum...
+  .use(
+    'sum',
+    Reduce(1, function (acc, item) {
+      return (acc || 0) + item.foo
+    })
+  )
 
-db.append({foo: 1}, function (err, seq) {
+db.append({ foo: 1 }, function (err, seq) {
+  if (err) throw err
   db.sum.get(function (err, value) {
-    if(err) throw err
+    if (err) throw err
     console.log(value) // 1
   })
 })
@@ -78,29 +82,29 @@ will grow much longer than the list of log modules.
 
 ### logs
 
-* [flumedb/flumelog-offset](https://github.com/flumedb/flumelog-offset) a log in a _file_ *recommended*.
-* [flumedb/flumelog-memory](https://github.com/flumedb/flumelog-memory) a log that is just an in memory array.
-* [flumedb/flumelog-level](https://github.com/flumedb/flumelog-level) a log on level.
-* [flumedb/flumelog-idb](https://github.com/flumedb/flumelog-idb) flumelog on top of indexeddb.
+- [flumedb/flumelog-offset](https://github.com/flumedb/flumelog-offset) a log in a _file_ _recommended_.
+- [flumedb/flumelog-memory](https://github.com/flumedb/flumelog-memory) a log that is just an in memory array.
+- [flumedb/flumelog-level](https://github.com/flumedb/flumelog-level) a log on level.
+- [flumedb/flumelog-idb](https://github.com/flumedb/flumelog-idb) flumelog on top of indexeddb.
 
 ### views
 
-* [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
-* [flumedb/flumeview-level](https://github.com/flumedb/flumeview-level) an implemented index on level.
-* [flumedb/flumeview-query](https://github.com/flumedb/flumeview-query) functional query language.
-* [flumedb/flumeview-search](https://github.com/flumedb/flumeview-search) full text search.
-* [flumedb/flumeview-hashtable](https://github.com/flumedb/flumeview-hashtable) hashtable is ideal when you have uniqueish keys and do not need range queries.
-* [flumedb/flumeview-bloom](https://github.com/flumedb/flumeview-bloom) bloom filter lets you check if _may_ have something.
+- [flumedb/flumeview-reduce](https://github.com/flumedb/flumeview-reduce) a reduce function as a view.
+- [flumedb/flumeview-level](https://github.com/flumedb/flumeview-level) an implemented index on level.
+- [flumedb/flumeview-query](https://github.com/flumedb/flumeview-query) functional query language.
+- [flumedb/flumeview-search](https://github.com/flumedb/flumeview-search) full text search.
+- [flumedb/flumeview-hashtable](https://github.com/flumedb/flumeview-hashtable) hashtable is ideal when you have uniqueish keys and do not need range queries.
+- [flumedb/flumeview-bloom](https://github.com/flumedb/flumeview-bloom) bloom filter lets you check if _may_ have something.
 
 ### other
 
 other modules that may come in handy
 
-* [flumedb/flumecodec](https://github.com/flumedb/flumecodec) simple codecs, used in most views and logs.
-* [dominictarr/charwise](https://github.com/dominictarr/charwise) an order-preserving encoding compatible with bytewise, but faster.
-* [flumedb/flumecli](https://github.com/flumedb/flumecli) instance command line interface
-* [flumedb/aligned-block-file](https://github.com/flumedb/aligned-block-file) read and write to a file with aligned blocks that are easy to cache.
-* [flumedb/test-flumelog](https://github.com/flumedb/test-flumelog) reusable tests for a flumelog.
+- [flumedb/flumecodec](https://github.com/flumedb/flumecodec) simple codecs, used in most views and logs.
+- [dominictarr/charwise](https://github.com/dominictarr/charwise) an order-preserving encoding compatible with bytewise, but faster.
+- [flumedb/flumecli](https://github.com/flumedb/flumecli) instance command line interface
+- [flumedb/aligned-block-file](https://github.com/flumedb/aligned-block-file) read and write to a file with aligned blocks that are easy to cache.
+- [flumedb/test-flumelog](https://github.com/flumedb/test-flumelog) reusable tests for a flumelog.
 
 ## api
 
@@ -256,7 +260,3 @@ which will be called exactly once, when that view is up to date with the log
 ## License
 
 MIT
-
-
-
-
