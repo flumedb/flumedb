@@ -141,7 +141,7 @@ module.exports = function (log, isReady, mapper) {
               Looper,
               sv.createSink(function (err) {
                 if (!flume.closed) {
-                  if (err) {
+                  if (err && err.abort !== true) {
                     console.error(
                       explain(err, `rebuilding ${name} after view stream error`)
                     )
@@ -172,7 +172,7 @@ module.exports = function (log, isReady, mapper) {
               // (note, rare race condition where sv might already be set,
               // so called before rm is returned)
               var rm = sv.since(function (v) {
-                if (v === log.since.value) {
+                if (v === log.since.value && typeof cb === 'function') {
                   var _cb = cb
                   cb = null
                   _cb()
