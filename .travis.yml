@@ -1,4 +1,13 @@
+# Use Node.js configuration.
 language: node_js
+
 node_js:
-  - 0.6
-  - 0.8
+  - 10
+  - 12
+  - node # latest
+
+os:
+  - linux
+  - osx
+  - windows
+
