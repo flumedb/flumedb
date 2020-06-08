@@ -12,7 +12,7 @@ const ViewLevel = require('flumeview-level')
 const codec = require('flumecodec')
 const tape = require('tape')
 
-const log = Log(`/tmp/foo-${Date.now()}.log`, { codec: codec.json })
+const log = Log(`/tmp/test-flumedb-${Date.now()}/log.offset`, { codec: codec.json })
 
 const db = Flume(log)
 
