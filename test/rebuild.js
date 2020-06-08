@@ -10,13 +10,13 @@ const Log = require('flumelog-offset')
 const Flume = require('..')
 const ViewLevel = require('flumeview-level')
 const codec = require('flumecodec')
-const te = require('tape')
+const tape = require('tape')
 
 const log = Log(`/tmp/foo-${Date.now()}.log`, { codec: codec.json })
 
 const db = Flume(log)
 
-te('basic rebuild', (t) => {
+tape('basic rebuild', (t) => {
   t.plan(16)
 
   let messagesSeen = 0
