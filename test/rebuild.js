@@ -10,45 +10,47 @@ const Log = require('flumelog-offset')
 const Flume = require('..')
 const ViewLevel = require('flumeview-level')
 const codec = require('flumecodec')
-const tap = require('tap')
+const te = require('tape')
 
 const log = Log(`/tmp/foo-${Date.now()}.log`, { codec: codec.json })
 
 const db = Flume(log)
 
-tap.plan(16)
+te('basic rebuild', (t) => {
+  t.plan(16)
 
-let messagesSeen = 0
-const messagesExpected = 7
+  let messagesSeen = 0
+  const messagesExpected = 7
 
-db.use(
-  'level',
-  ViewLevel(log, (x) => {
-    messagesSeen += 1
-    tap.pass(`${messagesSeen}/${messagesExpected}`)
-    return [x.foo]
-  })
-)
+  db.use(
+    'level',
+    ViewLevel(log, (x) => {
+      messagesSeen += 1
+      t.pass(`${messagesSeen}/${messagesExpected}`)
+      return [x.foo]
+    })
+  )
 
-db.append({ foo: 1 }, function (err) {
-  tap.error(err, 'no error after append 1')
-  db.append({ foo: 2 }, function (err) {
-    tap.error(err, 'no error after append 2')
-    db.level.get(2, (err) => {
-      tap.error(err, 'no error after level.get()')
-      db.rebuild((err) => {
-        tap.error(err, 'no error after rebuild')
-        db.append({ foo: 3 }, function (err) {
-          tap.error(err, 'no error after append 3')
-          db.append({ foo: 4 }, function (err) {
-            tap.error(err, 'no error after append 4')
-            db.append({ foo: 5 }, function (err) {
-              tap.error(err, 'no error after append 4')
-              db.level.get(4, (err) => {
-                tap.error(err, 'no error after level.get()')
-                db.close((err) => {
-                  tap.error(err, 'no error after close')
-                  tap.end()
+  db.append({ foo: 1 }, function (err) {
+    t.error(err, 'no error after append 1')
+    db.append({ foo: 2 }, function (err) {
+      t.error(err, 'no error after append 2')
+      db.level.get(2, (err) => {
+        t.error(err, 'no error after level.get()')
+        db.rebuild((err) => {
+          t.error(err, 'no error after rebuild')
+          db.append({ foo: 3 }, function (err) {
+            t.error(err, 'no error after append 3')
+            db.append({ foo: 4 }, function (err) {
+              t.error(err, 'no error after append 4')
+              db.append({ foo: 5 }, function (err) {
+                t.error(err, 'no error after append 4')
+                db.level.get(4, (err) => {
+                  t.error(err, 'no error after level.get()')
+                  db.close((err) => {
+                    t.error(err, 'no error after close')
+                    t.end()
+                  })
                 })
               })
             })
