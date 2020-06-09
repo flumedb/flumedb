@@ -141,6 +141,12 @@ module.exports = function (log, isReady, mapper) {
               Looper,
               sv.createSink(function (err) {
                 if (!flume.closed) {
+                  // The `err` value is meant to be either `null` or an error,
+                  // but unfortunately Pull-Write seems to abort streams with
+                  // an error when it shouldn't. Fortunately these errors have
+                  // an extra `{ abort. true }` property, which makes them easy
+                  // to identify. Errors where `{ abort: true }` should be
+                  // handled as if the error was `null`.
                   if (err && err.abort !== true) {
                     console.error(
                       explain(err, `rebuilding ${name} after view stream error`)
