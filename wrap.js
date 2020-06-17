@@ -113,9 +113,7 @@ module.exports = function wrap (sv, flume) {
     },
     meta: meta,
     destroy: (cb) => {
-      o.destroying = true
       sv.destroy((err) => {
-        o.destroying = false
         cb(err)
       })
     },

@@ -26,7 +26,9 @@ module.exports = function (log, isReady, mapper) {
       const rebuildView = () => {
         // TODO - create some debug logfile and log that we're rebuilding, what error was
         // so that we have some visibility on how often this happens over time
+        sv.destroying = true
         sv.destroy(() => {
+          sv.destroying = false
           build(-1)
         })
       }
@@ -44,7 +46,7 @@ module.exports = function (log, isReady, mapper) {
           // we manage strema cancellations in FlumeDB rather than each
           // individual Flumeview then we'll have fewer race conditions.
           const abortable = pullAbortable()
-          sv.abort = abortable.abort
+          sv.abortStream = abortable.abort
 
           pull(
             stream(opts),
@@ -54,7 +56,7 @@ module.exports = function (log, isReady, mapper) {
               // If FlumeDB is closed or this view is currently being
               // destroyed, we don't want to try to immediately restart the
               // stream. This saves us a bit of sanity
-              if (!flume.closed && sv.rebuilding === true) {
+              if (!flume.closed && sv.destroying === false) {
                 // The `err` value is meant to be either `null` or an error,
                 // but unfortunately Pull-Write seems to abort streams with
                 // an error when it shouldn't. Fortunately these errors have
@@ -186,22 +188,23 @@ module.exports = function (log, isReady, mapper) {
       return flume
     },
     rebuild: function (cb) {
-      throwIfClosed('rebuild')
       return cont.para(
         map(flume.views, function (sv) {
           // First, we need to abort the stream to this view. This prevents new
+          sv.destroying = true
           // messages from being sent during `destroy()`, which could lead to
           // race conditions and leftover data.
-          sv.abort()
+          sv.abortStream()
 
           // Then we return a function that calls back when the view is
           // up-to-date.
           return function (cb) {
             // The `destroy()` function does **not** stop the `createSink()`
-            // stream, that happens when we call `sv.abort()` above. The
+            // stream, that happens when we call `sv.abortStream()` above. The
             // `destroy()` method should call back once the database is empty,
             // and `sv.since` should be set to `-1`.
             sv.destroy(function (err) {
+              sv.destroying = false
               if (err) return cb(err)
 
               // There isn't a clear separation of responsibility here: should
@@ -247,7 +250,7 @@ module.exports = function (log, isReady, mapper) {
       cont.para(
         map(flume.views, function (sv, k) {
           return function (cb) {
-            if (sv.abort) sv.abort()
+            if (sv.abortStream) sv.abortStream()
             if (sv.close) sv.close(cb)
             else cb()
           }
