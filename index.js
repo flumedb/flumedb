@@ -7,6 +7,7 @@ var Obv = require('obv')
 var explain = require('explain-error')
 var Looper = require('pull-looper')
 var asyncMap = require('pull-stream/throughs/async-map')
+var pullAbortable = require('pull-abortable')
 
 // take a log, and return a log driver.
 // the log has an api with `read`, `get` `since`
@@ -20,6 +21,61 @@ function map (obj, iter) {
 }
 
 module.exports = function (log, isReady, mapper) {
+  const buildView = (sv) => {
+    sv.since.once(function build (upto) {
+      const rebuildView = () => {
+        // TODO - create some debug logfile and log that we're rebuilding, what error was
+        // so that we have some visibility on how often this happens over time
+        sv.destroy(() => {
+          build(-1)
+        })
+      }
+
+      log.since.once(function (since) {
+        if (upto > since) rebuildView()
+        else {
+          var opts = { gt: upto, live: true, seqs: true, values: true }
+          if (upto === -1) opts.cache = false
+
+          // Before starting a stream it's important that we configure some way
+          // for FlumeDB to close the stream! Previous versions of FlumeDB
+          // would rely on each view having some intelligent stream closure
+          // that seemed to cause lots of race conditions. My hope is that if
+          // we manage strema cancellations in FlumeDB rather than each
+          // individual Flumeview then we'll have fewer race conditions.
+          const abortable = pullAbortable()
+          sv.abort = abortable.abort
+
+          pull(
+            stream(opts),
+            abortable,
+            Looper,
+            sv.createSink(function (err) {
+              // If FlumeDB is closed or this view is currently being
+              // destroyed, we don't want to try to immediately restart the
+              // stream. This saves us a bit of sanity
+              if (!flume.closed && sv.rebuilding === true) {
+                // The `err` value is meant to be either `null` or an error,
+                // but unfortunately Pull-Write seems to abort streams with
+                // an error when it shouldn't. Fortunately these errors have
+                // an extra `{ abort. true }` property, which makes them easy
+                // to identify. Errors where `{ abort: true }` should be
+                // handled as if the error was `null`.
+                if (err && err.abort !== true) {
+                  console.error(
+                    explain(err, `rebuilding ${sv.name} after view stream error`)
+                  )
+                  rebuildView()
+                } else {
+                  sv.since.once(build)
+                }
+              }
+            })
+          )
+        }
+      })
+    })
+  }
   var meta = {}
 
   log.get = count(log.get, 'get')
@@ -122,45 +178,10 @@ module.exports = function (log, isReady, mapper) {
       flume.views[name] = flume[name] = wrap(sv, flume)
       meta[name] = flume[name].meta
 
+      flume.views[name].name = name
+
       // if the view is ahead of the log somehow, destroy the view and rebuild it.
-      sv.since.once(function build (upto) {
-        const rebuildView = () => {
-          // TODO - create some debug logfile and log that we're rebuilding, what error was
-          // so that we have some visibility on how often this happens over time
-          sv.destroy(() => build(-1))
-        }
-
-        log.since.once(function (since) {
-          if (upto > since) rebuildView()
-          else {
-            var opts = { gt: upto, live: true, seqs: true, values: true }
-            if (upto === -1) opts.cache = false
-
-            pull(
-              stream(opts),
-              Looper,
-              sv.createSink(function (err) {
-                if (!flume.closed) {
-                  // The `err` value is meant to be either `null` or an error,
-                  // but unfortunately Pull-Write seems to abort streams with
-                  // an error when it shouldn't. Fortunately these errors have
-                  // an extra `{ abort. true }` property, which makes them easy
-                  // to identify. Errors where `{ abort: true }` should be
-                  // handled as if the error was `null`.
-                  if (err && err.abort !== true) {
-                    console.error(
-                      explain(err, `rebuilding ${name} after view stream error`)
-                    )
-                    rebuildView()
-                  } else {
-                    sv.since.once(build)
-                  }
-                }
-              })
-            )
-          }
-        })
-      })
+      buildView(flume.views[name])
 
       return flume
     },
@@ -168,15 +189,45 @@ module.exports = function (log, isReady, mapper) {
       throwIfClosed('rebuild')
       return cont.para(
         map(flume.views, function (sv) {
+          // First, we need to abort the stream to this view. This prevents new
+          // messages from being sent during `destroy()`, which could lead to
+          // race conditions and leftover data.
+          sv.abort()
+
+          // Then we return a function that calls back when the view is
+          // up-to-date.
           return function (cb) {
-            // destroying will stop createSink stream
-            // and flumedb will restart write.
+            // The `destroy()` function does **not** stop the `createSink()`
+            // stream, that happens when we call `sv.abort()` above. The
+            // `destroy()` method should call back once the database is empty,
+            // and `sv.since` should be set to `-1`.
             sv.destroy(function (err) {
               if (err) return cb(err)
-              // when the view is up to date with log again
-              // callback, but only once, and then stop observing.
-              // (note, rare race condition where sv might already be set,
-              // so called before rm is returned)
+
+              // There isn't a clear separation of responsibility here: should
+              // the views set their `since` value here, or should FlumeDB? I
+              // don't think there are any problems with both FlumeDB and the
+              // view setting this value, but this might be an exercise in
+              // paranoia.
+              sv.since.set(-1)
+
+              // Stream: CANCELLED.
+              // Database: EMPTY.
+              // Since: -1.
+              //
+              // Now we just need to re-stream all of the messages to the view.
+              // This should make `sv.since` slowly increment as it processes
+              // each // message, and eventually it'll catch up to `log.since`.
+              buildView(sv)
+
+              // Each time `sv.since` changes, we want to compare it to
+              // `log.since`. Once they're the same, the view is done
+              // rebuilding and we can call back.
+              //
+              // Sometimes naughty views might set since to the same value
+              // twice (!) so we have to reassign `cb` to avoid calling it
+              // twice. This idiom is slightly confusing but I'm too scared to
+              // refactor it.
               var rm = sv.since(function (v) {
                 if (v === log.since.value && typeof cb === 'function') {
                   var _cb = cb
@@ -196,6 +247,7 @@ module.exports = function (log, isReady, mapper) {
       cont.para(
         map(flume.views, function (sv, k) {
           return function (cb) {
+            if (sv.abort) sv.abort()
             if (sv.close) sv.close(cb)
             else cb()
           }

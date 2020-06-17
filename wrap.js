@@ -112,7 +112,15 @@ module.exports = function wrap (sv, flume) {
       else sv.close(err, cb)
     },
     meta: meta,
-    destroy: sv.destroy
+    destroy: (cb) => {
+      o.destroying = true
+      sv.destroy((err) => {
+        o.destroying = false
+        cb(err)
+      })
+    },
+    destroying: false,
+    createSink: sv.createSink
   }
   if (!sv.methods) throw new Error('a stream view must have methods property')
 

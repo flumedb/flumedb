@@ -44,7 +44,7 @@ tape('basic rebuild', (t) => {
             db.append({ foo: 4 }, function (err) {
               t.error(err, 'no error after append 4')
               db.append({ foo: 5 }, function (err) {
-                t.error(err, 'no error after append 4')
+                t.error(err, 'no error after append 5')
                 db.level.get(4, (err) => {
                   t.error(err, 'no error after level.get()')
                   db.close((err) => {
