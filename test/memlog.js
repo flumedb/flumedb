@@ -7,7 +7,7 @@ var Flume = require('../')
 
 var MemLog = require('flumelog-memory')
 var Reduce = require('flumeview-reduce')
-var Obv = require('obv')
+var Obv = require('obz')
 
 module.exports = function (db) {
   db.use(

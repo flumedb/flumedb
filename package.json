@@ -10,7 +10,7 @@
   "dependencies": {
     "cont": "^1.0.3",
     "explain-error": "^1.0.3",
-    "obv": "0.0.1",
+    "obz": "1.0.2",
     "pull-abortable": "^4.1.1",
     "pull-cont": "^0.1.1",
     "pull-looper": "^1.0.0",

@@ -4,7 +4,7 @@ var pull = require('pull-stream')
 var tape = require('tape')
 
 var Reduce = require('flumeview-reduce')
-var Obv = require('obv')
+var Obv = require('obz')
 
 module.exports = function (db) {
   db.use(
