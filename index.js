@@ -195,9 +195,7 @@ module.exports = function (log, isReady, mapper) {
       return cont.para(
         map(flume.views, function (sv) {
           // First, we need to abort the stream to this view. This prevents new
-          console.log(sv.name, sv.isDestroying())
           sv.setDestroying(true)
-          console.log(sv.name, sv.isDestroying())
           // messages from being sent during `destroy()`, which could lead to
           // race conditions and leftover data.
           sv.abortStream()
