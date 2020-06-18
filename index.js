@@ -122,7 +122,11 @@ module.exports = function (log, isReady, mapper) {
   }
 
   function stream (opts) {
-    return pull(log.stream(opts), mapper ? mapStream(opts) : null, Looper)
+    return pull(
+      log.stream(opts),
+      mapper ? mapStream(opts) : null,
+      Looper
+    )
   }
 
   function throwIfClosed (name) {
@@ -212,7 +216,7 @@ module.exports = function (log, isReady, mapper) {
               // don't think there are any problems with both FlumeDB and the
               // view setting this value, but this might be an exercise in
               // paranoia.
-              sv.since.set(-1)
+              // sv.since.set(-1)
 
               // Stream: CANCELLED.
               // Database: EMPTY.
