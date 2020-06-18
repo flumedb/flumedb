@@ -198,7 +198,7 @@ module.exports = function (log, isReady, mapper) {
           sv.setDestroying(true)
           // messages from being sent during `destroy()`, which could lead to
           // race conditions and leftover data.
-          sv.abortStream()
+          if (sv.abortStream) sv.abortStream()
 
           // Then we return a function that calls back when the view is
           // up-to-date.
