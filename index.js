@@ -26,9 +26,9 @@ module.exports = function (log, isReady, mapper) {
       const rebuildView = () => {
         // TODO - create some debug logfile and log that we're rebuilding, what error was
         // so that we have some visibility on how often this happens over time
-        sv.destroying = true
+        sv.setDestroying(true)
         sv.destroy(() => {
-          sv.destroying = false
+          sv.setDestroying(false)
           build(-1)
         })
       }
@@ -56,7 +56,7 @@ module.exports = function (log, isReady, mapper) {
               // If FlumeDB is closed or this view is currently being
               // destroyed, we don't want to try to immediately restart the
               // stream. This saves us a bit of sanity
-              if (!flume.closed && sv.destroying === false) {
+              if (!flume.closed && sv.isDestroying() === false) {
                 // The `err` value is meant to be either `null` or an error,
                 // but unfortunately Pull-Write seems to abort streams with
                 // an error when it shouldn't. Fortunately these errors have
@@ -195,7 +195,9 @@ module.exports = function (log, isReady, mapper) {
       return cont.para(
         map(flume.views, function (sv) {
           // First, we need to abort the stream to this view. This prevents new
-          sv.destroying = true
+          console.log(sv.name, sv.isDestroying())
+          sv.setDestroying(true)
+          console.log(sv.name, sv.isDestroying())
           // messages from being sent during `destroy()`, which could lead to
           // race conditions and leftover data.
           sv.abortStream()
@@ -208,7 +210,7 @@ module.exports = function (log, isReady, mapper) {
             // `destroy()` method should call back once the database is empty,
             // and `sv.since` should be set to `-1`.
             sv.destroy(function (err) {
-              sv.destroying = false
+              sv.setDestroying(false)
               if (err) return cb(err)
 
               // There isn't a clear separation of responsibility here: should

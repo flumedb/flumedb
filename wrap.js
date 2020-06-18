@@ -99,6 +99,8 @@ module.exports = function wrap (sv, flume) {
     while (waiting.length) waiting.shift().cb(err)
   }
 
+  var isDestroying = false
+
   var o = {
     ready: ready,
     since: sv.since,
@@ -117,7 +119,8 @@ module.exports = function wrap (sv, flume) {
         cb(err)
       })
     },
-    destroying: false,
+    setDestroying: val => { isDestroying = val },
+    isDestroying: () => isDestroying,
     createSink: sv.createSink
   }
   if (!sv.methods) throw new Error('a stream view must have methods property')
